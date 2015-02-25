@@ -24,8 +24,6 @@ quickstart
 
 build your first container from this example directory
 
-   sudo $(which cask) build -caskpath examples/golang/cask
-
-
+    sudo cask build -caskpath examples/golang/cask
 
 

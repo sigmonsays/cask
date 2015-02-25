@@ -1,5 +1,7 @@
 container and image management tool
 
+description
+--------------
 the initial goal of cask is to make it easy to manage containers and images
 
 currently it supports building a image in a lxc against a given runtime. A

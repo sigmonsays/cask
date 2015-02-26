@@ -180,14 +180,12 @@ func build_image() {
       fmt.Println("ERROR", err)
       return
    }
-   for _, key := range clone.ConfigKeys() {
-      values := clone.ConfigItem(key)
-      fmt.Println("blah", key, "--->", len(values))
+   keys := runtime.ConfigKeys()
+   for _, key := range keys {
+      values := runtime.ConfigItem(key)
+
+      fmt.Println("blah", key, "--->", len(values), "=", values)
       if len(values) == 0 {
-         continue
-      }
-      if values[0] == "" {
-         fmt.Println("skipping suspiciously empty configuration", key)
          continue
       }
 

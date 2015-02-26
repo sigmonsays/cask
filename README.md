@@ -14,7 +14,6 @@ been included in the runtime.
 
 runtime
 --------------
-
 Any image can be used as a runtime but here is a quick way to bootstrap a runtime with lxc
 
     lxc-create --template ubuntu --name ubuntu12  -- --release precise
@@ -23,6 +22,10 @@ quickstart
 --------------
 - requires lxc 1.0 
 - ensure you have a runtime available
+
+install cask
+
+    go get github.com/sigmonsays/cask/cask
 
 build your first container from this example directory
 

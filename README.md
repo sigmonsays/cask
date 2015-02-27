@@ -39,4 +39,4 @@ build your first container from this example directory
 
 launch an image
 
-    sudo launch -name example-1 /srv/lxc/example.tar.gz
+    sudo cask launch -name example-1 /srv/lxc/example.tar.gz

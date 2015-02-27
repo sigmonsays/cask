@@ -50,6 +50,7 @@ func launch() {
    fmt.Println("launch", opts.name, "using", archivepath)
 
    containerpath := filepath.Join(opts.lxcpath, opts.name)
+   configpath := filepath.Join(containerpath, "config")
    metadatapath := filepath.Join(containerpath, "meta.json")
    rootfspath := filepath.Join(containerpath, "rootfs")
    mountpath := filepath.Join(containerpath, "fstab")
@@ -119,6 +120,20 @@ func launch() {
    fstab.Close()
 
 
+   // merge config in from meta
+   fmt.Println("merge config")
+   for key, values := range meta.Config {
+
+      if key == "lxc.network" {
+         // work around for network configuration not being set properly
+         continue
+      }
+
+      for _, value := range values {
+         container.SetConfigItem(key, value)
+      }
+   }
+
    // specific configuration for this container
    container.SetConfigItem("lxc.utsname", opts.name)
 
@@ -127,14 +142,24 @@ func launch() {
    container.SetConfigItem("lxc.mount", mountpath)
    
 
-   // merge config in from meta
-   for key, values := range meta.Config {
-      for _, value := range values {
-         container.SetConfigItem(key, value)
+   fmt.Println("config network")
+   container.SetConfigItem("lxc.network.type", "veth")
+   container.SetConfigItem("lxc.network.link", "lxcbr0")
+   container.SetConfigItem("lxc.network.flags", "up")
+   container.SetConfigItem("lxc.network.hwaddr", "00:16:3e:xx:xx:xx")
+
+   if container.Defined() == false {
+      fmt.Println("container", opts.name, "not defined, creating..")
+
+
+      err := container.SaveConfigFile(configpath)
+      if err != nil {
+         fmt.Println("ERROR", err)
+         return
       }
    }
    
-   fmt.Println("container", opts.name, "defined", container.Defined())
+   fmt.Println("configured", opts.lxcpath, opts.name)
    
 
 }

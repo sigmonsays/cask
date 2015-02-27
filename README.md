@@ -37,4 +37,6 @@ build your first container from this example directory
 
     sudo cask build -caskpath examples/golang/cask
 
+launch an image
 
+    sudo launch -name example-1 /srv/lxc/example.tar.gz

@@ -1,5 +1,11 @@
 container and image management tool
 
+status
+--------------
+prototype software just to prove a concept
+
+No real production work should be done with this tool.
+
 description
 --------------
 the initial goal of cask is to make it easy to manage containers and images

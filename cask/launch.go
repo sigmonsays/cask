@@ -109,6 +109,11 @@ func launch() {
 	}
 
 	if container.Defined() {
+		fmt.Println("destroying container", opts.name)
+		err := container.Stop()
+		if err != nil {
+			fmt.Println("WARN Stop", opts.name, err)
+		}
 		container.Destroy()
 	}
 
@@ -162,8 +167,15 @@ func launch() {
 		}
 	}
 
+	os.MkdirAll(rootfspath, 0755)
+
 	fmt.Println("configured", opts.lxcpath, opts.name)
 
 	// start the container
+	err = container.Start()
+	if err != nil {
+		fmt.Println("ERROR Start", opts.name, err)
+		return
+	}
 
 }

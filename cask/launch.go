@@ -58,13 +58,18 @@ func launch() {
 	fmt.Println("metadata path", metadatapath)
 	fmt.Println("rootfs path", rootfspath)
 
+	if _, err := os.Stat(archivepath); err != nil {
+		fmt.Println("ERROR: Archive not found:", archivepath, err)
+		return
+	}
+
 	os.MkdirAll(containerpath, 0755)
 	cmdline := []string{"tar", "--strip-components=1", "-vzxf", archivepath}
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Dir = containerpath
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println("ERROR Command", cmdline, err)
+		fmt.Printf("ERROR (in %s) Command %s: %s\n", cmd.Dir, cmdline, err)
 		return
 	}
 

@@ -114,6 +114,8 @@ func launch() {
 
 	container.ClearConfig()
 
+	os.MkdirAll(filepath.Dir(mountpath), 0755)
+
 	fstab, err := os.Create(mountpath)
 	if err != nil {
 		fmt.Println("ERROR Create", mountpath, err)
@@ -161,5 +163,7 @@ func launch() {
 	}
 
 	fmt.Println("configured", opts.lxcpath, opts.name)
+
+	// start the container
 
 }

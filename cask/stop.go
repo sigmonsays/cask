@@ -21,14 +21,14 @@ func stop(c *cli.Context) {
 
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR getting runtime container", err)
+		log.Error("ERROR getting container", opts.name, err)
 		return
 	}
 
 	log.Info(opts.name, "is", container.State())
 	err = container.Stop()
 	if err != nil {
-		log.Error("ERROR getting runtime container", err)
+		log.Error("ERROR stopping container", err)
 		return
 	}
 }

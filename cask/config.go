@@ -10,9 +10,6 @@ import (
 type ConfigOptions struct {
 	*CommonOptions
 
-	// be more verbose in some cases
-	verbose bool
-
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
 
@@ -24,6 +21,8 @@ func config(c *cli.Context) {
 
 	opts := &ConfigOptions{
 		CommonOptions: GetCommonOptions(c),
+		runtime:       c.String("runtime"),
+		name:          c.String("name"),
 	}
 
 	runtimepath := filepath.Join(opts.lxcpath, opts.runtime)

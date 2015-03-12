@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
 type LaunchOptions struct {
@@ -21,28 +20,14 @@ type LaunchOptions struct {
 
 	// name of the container
 	name string
-
-	// what states to wait for
-	waitMask int
-
-	// wait times in seconds
-	WaitTimeout, WaitNetworkTimeout time.Duration
 }
-
-const (
-	WaitMaskStart = iota
-	WaitMaskNetwork
-)
 
 func launch(c *cli.Context) {
 
 	opts := &LaunchOptions{
-		CommonOptions:      GetCommonOptions(c),
-		name:               c.String("name"),
-		WaitTimeout:        c.Duration("waittimeout"),
-		WaitNetworkTimeout: c.Duration("networktimeout"),
-		runtime:            c.String("runtime"),
-		waitMask:           c.Int("wait"),
+		CommonOptions: GetCommonOptions(c),
+		name:          c.String("name"),
+		runtime:       c.String("runtime"),
 	}
 
 	if opts.name == "" {
@@ -206,13 +191,13 @@ func launch(c *cli.Context) {
 
 	// wait for container to start up....
 	if opts.waitMask >= WaitMaskStart {
-		container.Wait(lxc.RUNNING, opts.WaitTimeout)
+		container.Wait(lxc.RUNNING, opts.waitTimeout)
 	}
 
 	if opts.waitMask >= WaitMaskNetwork {
 		fmt.Println("container started, waiting for network..")
 		// wait for it to startup and get network
-		iplist, err := container.WaitIPAddresses(opts.WaitNetworkTimeout)
+		iplist, err := container.WaitIPAddresses(opts.waitNetworkTimeout)
 		fmt.Println("iplist", iplist)
 		if err != nil {
 			fmt.Println("WARNING did not get ip address from container", err)

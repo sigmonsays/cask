@@ -23,6 +23,14 @@ func main() {
 			Name:  "level",
 			Value: "WARN",
 		},
+		cli.DurationFlag{
+			Name:  "wait-timeout, w",
+			Value: time.Duration(2) * time.Second,
+		},
+		cli.DurationFlag{
+			Name:  "net-timeout",
+			Value: time.Duration(15) * time.Second,
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		gologging.SetLogLevel(c.String("level"))
@@ -57,17 +65,9 @@ func main() {
 					Name:  "name",
 					Value: "",
 				},
-				cli.IntFlag{
-					Name:  "wait",
-					Value: 2,
-				},
-				cli.DurationFlag{
-					Name:  "wait-timeout, w",
-					Value: time.Duration(2) * time.Second,
-				},
-				cli.DurationFlag{
-					Name:  "net-timeout",
-					Value: time.Duration(15) * time.Second,
+				cli.StringFlag{
+					Name:  "runtime",
+					Value: "",
 				},
 			},
 			Action: func(c *cli.Context) {
@@ -78,6 +78,10 @@ func main() {
 			Name:  "config",
 			Usage: "show container config",
 			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name",
+					Value: "",
+				},
 				cli.StringFlag{
 					Name:  "runtime",
 					Value: "",
@@ -90,6 +94,16 @@ func main() {
 		{
 			Name:  "list",
 			Usage: "list containers",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "runtime",
+					Value: "",
+				},
+			},
 			Action: func(c *cli.Context) {
 				list(c)
 			},
@@ -97,6 +111,16 @@ func main() {
 		{
 			Name:  "start",
 			Usage: "start a container",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "runtime, r",
+					Value: "",
+				},
+			},
 			Action: func(c *cli.Context) {
 				start(c)
 			},
@@ -104,11 +128,16 @@ func main() {
 		{
 			Name:  "stop",
 			Usage: "stop a container",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+			},
 			Action: func(c *cli.Context) {
-				// stop()
+				stop(c)
 			},
 		},
 	}
-
 	app.Run(os.Args)
 }

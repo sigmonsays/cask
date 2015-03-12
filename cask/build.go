@@ -14,14 +14,8 @@ import (
 	"time"
 )
 
-// how long to wait for the container to start (return RUNNING)
-const waitTimeout = time.Duration(3) * time.Second
-
 type BuildOptions struct {
 	*CommonOptions
-
-	// be more verbose in some cases
-	verbose bool
 
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
@@ -30,8 +24,7 @@ type BuildOptions struct {
 	caskpath string
 
 	// if we want to keep the build context container around after exit
-	keep_container     bool
-	waitNetworkTimeout time.Duration
+	keep_container bool
 }
 
 func monitor() *exec.Cmd {
@@ -55,15 +48,11 @@ func build(c *cli.Context) {
 
 func build_image(c *cli.Context) {
 
-	// cask_binary := os.Args[0]
-
 	opts := &BuildOptions{
-		CommonOptions:      GetCommonOptions(c),
-		waitNetworkTimeout: time.Duration(1) * time.Second,
-		keep_container:     c.Bool("keep"),
-		verbose:            c.Bool("verbose"),
-		runtime:            c.String("runtime"),
-		caskpath:           c.String("caskpath"),
+		CommonOptions:  GetCommonOptions(c),
+		keep_container: c.Bool("keep"),
+		runtime:        c.String("runtime"),
+		caskpath:       c.String("caskpath"),
 	}
 
 	fmt.Println("lxcpath", opts.lxcpath)
@@ -159,15 +148,6 @@ func build_image(c *cli.Context) {
 
 	os.MkdirAll(container_path("/cask/bin"), 0544)
 
-	// copy the cask executable itself into the container
-	/*
-		err = CopyFile(cask_binary, container_path("/cask/bin/cask"), 0544)
-		if err != nil {
-			fmt.Println("ERROR CopyFile", err)
-			return
-		}
-	*/
-
 	// save a copy of the config in the container
 	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
 
@@ -236,7 +216,7 @@ func build_image(c *cli.Context) {
 		return
 	}
 
-	clone.Wait(lxc.RUNNING, waitTimeout)
+	clone.Wait(lxc.RUNNING, opts.waitTimeout)
 
 	// wait for it to startup and get network
 	iplist, err := clone.WaitIPAddresses(time.Duration(opts.waitNetworkTimeout) * time.Second)

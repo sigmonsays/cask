@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 type BuildOptions struct {
@@ -55,21 +54,22 @@ func build_image(c *cli.Context) {
 		caskpath:       c.String("caskpath"),
 	}
 
-	fmt.Println("lxcpath", opts.lxcpath)
-	fmt.Println("cask build runtime", opts.runtime)
-	fmt.Println("cask path", opts.caskpath)
+	log.Tracef("wait %v", opts.waitMask)
+	log.Info("lxcpath", opts.lxcpath)
+	log.Info("cask build runtime", opts.runtime)
+	log.Info("cask path", opts.caskpath)
 
 	meta_path := filepath.Join(opts.caskpath, "meta.json")
 	meta_blob, err := ioutil.ReadFile(meta_path)
 	if err != nil {
-		fmt.Println("ERROR meta.json:", err)
+		log.Errorf("ERROR meta.json: %s", err)
 		return
 	}
 
 	meta := &Meta{}
 	err = json.Unmarshal(meta_blob, meta)
 	if err != nil {
-		fmt.Println("ERROR meta.json:", err)
+		log.Error("ERROR meta.json:", err)
 		return
 	}
 
@@ -79,63 +79,63 @@ func build_image(c *cli.Context) {
 
 	if len(opts.runtime) == 0 && len(meta.Runtime) > 0 {
 		opts.runtime = meta.Runtime
-		fmt.Println("Using runtime from metadata", opts.runtime)
+		log.Error("Using runtime from metadata", opts.runtime)
 	} else if opts.runtime == "" {
 		opts.runtime = GetDefaultRuntime()
-		fmt.Println("Using detected runtime from metadata", opts.runtime)
+		log.Error("Using detected runtime from metadata", opts.runtime)
 	}
 
 	runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR creating runtime:", err)
+		log.Error("ERROR creating runtime:", err)
 		return
 	}
 
 	container := fmt.Sprintf("build-%d", os.Getpid())
-   log.Tracef("temporary container name %s", container)
+	log.Tracef("temporary container name %s", container)
 	clone_options := lxc.CloneOptions{
 		Backend:  lxc.Aufs,
 		Snapshot: true,
 	}
 	err = runtime.Clone(container, clone_options)
 	if err != nil {
-		fmt.Println("ERROR clone:", err)
+		log.Error("ERROR clone:", err)
 		return
 	}
 
 	// get the clone
 	clone, err := lxc.NewContainer(container, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR clone NewContainer:", err)
+		log.Error("ERROR clone NewContainer:", err)
 		return
 	}
 
 	if opts.keep_container == false {
 		defer func() {
-         clone.Destroy()
-      }()
+			clone.Destroy()
+		}()
 	}
 
 	rootfs_values := clone.ConfigItem("lxc.rootfs")
 	if len(rootfs_values) == 0 {
-		fmt.Println("ERROR cloned container:", container, "has no rootfs")
+		log.Error("ERROR cloned container:", container, "has no rootfs")
 		return
 	}
 	rootfs_tmp := strings.Split(rootfs_values[0], ":")
-   log.Tracef("clone has rootfs %s", rootfs_tmp)
+	log.Tracef("clone has rootfs %s", rootfs_tmp)
 
-   var delta_path string
-   var cask_rootfs string
-   var cask_path string
-   if len(rootfs_tmp) > 2 {
-      delta_path = rootfs_tmp[2]
-      cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
-      cask_path = filepath.Join(delta_path, "cask")
-   } else {
-      delta_path = rootfs_values[0]
-      cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
-      cask_path = filepath.Join(delta_path, "cask")
-   }
+	var delta_path string
+	var cask_rootfs string
+	var cask_path string
+	if len(rootfs_tmp) > 2 {
+		delta_path = rootfs_tmp[2]
+		cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
+		cask_path = filepath.Join(delta_path, "cask")
+	} else {
+		delta_path = rootfs_values[0]
+		cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
+		cask_path = filepath.Join(delta_path, "cask")
+	}
 
 	containerpath := filepath.Join(opts.lxcpath, meta.Name)
 	rootfs_dir := filepath.Join(containerpath, "rootfs")
@@ -145,14 +145,14 @@ func build_image(c *cli.Context) {
 	// destroy existing data
 	os.RemoveAll(containerpath)
 
-	fmt.Println("cask path", cask_path)
-	fmt.Println("container path", containerpath)
-	fmt.Println("archive path", archive_path)
+	log.Debug("cask path", cask_path)
+	log.Debug("container path", containerpath)
+	log.Debug("archive path", archive_path)
 
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
 	if err != nil {
-		fmt.Println("ERROR CopyTree", opts.caskpath, "to", cask_path, err)
+		log.Error("ERROR CopyTree", opts.caskpath, "to", cask_path, err)
 		return
 	}
 
@@ -167,7 +167,7 @@ func build_image(c *cli.Context) {
 
 	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))
 	if err != nil {
-		fmt.Println("ERROR Create", err)
+		log.Error("ERROR Create", err)
 		return
 	}
 	keys := runtime.ConfigKeys()
@@ -195,11 +195,11 @@ func build_image(c *cli.Context) {
 	// walk the rootfs dir and add all the files into the destination rootfs
 
 	offset := len(cask_rootfs)
-	fmt.Println("copy rootfs", cask_rootfs)
+	log.Debug("copy rootfs", cask_rootfs)
 	newpath := ""
 	walkfn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Println("walk", path, err)
+			log.Error("walk", path, err)
 			return err
 		}
 		newpath = filepath.Join(delta_path, path[offset:])
@@ -210,32 +210,39 @@ func build_image(c *cli.Context) {
 		} else if info.Mode().IsRegular() {
 			err = shutil.CopyFile(path, newpath, false)
 			if err != nil {
-				fmt.Println("ERROR copy file", newpath, err)
+				log.Error("ERROR copy file", newpath, err)
 			}
 		} else {
-			fmt.Println("WARNING: skipping", path)
+			log.Error("WARNING: skipping", path)
 		}
 		return nil
 	}
 	err = filepath.Walk(cask_rootfs, walkfn)
 	if err != nil {
-		fmt.Println("ERROR walk:", err)
+		log.Error("ERROR walk:", err)
 		return
 	}
 
 	// start the container
 	err = clone.Start()
 	if err != nil {
-		fmt.Println("ERROR starting cloned container:", err)
+		log.Error("ERROR starting cloned container:", err)
 		return
 	}
 
 	clone.Wait(lxc.RUNNING, opts.waitTimeout)
 
-	// wait for it to startup and get network
-	iplist, err := clone.WaitIPAddresses(time.Duration(opts.waitNetworkTimeout) * time.Second)
-
-	fmt.Println("iplist", iplist, err)
+	if opts.waitMask >= WaitMaskNetwork {
+		log.Infof("container started, waiting %s for network..", opts.waitNetworkTimeout)
+		// wait for it to startup and get network
+		iplist, err := clone.WaitIPAddresses(opts.waitNetworkTimeout)
+		if err != nil {
+			log.Infof("WARNING did not get ip address from container: %s", err)
+		}
+		for _, ip := range iplist {
+			fmt.Println("ip", ip)
+		}
+	}
 
 	// execute bootstrap script now
 	attach_options := lxc.DefaultAttachOptions
@@ -243,12 +250,12 @@ func build_image(c *cli.Context) {
 	cmd := []string{"sh", "-c", "/cask/bootstrap"}
 	exit_code, err := clone.RunCommandStatus(cmd, attach_options)
 	if err != nil {
-		fmt.Println("ERROR RunCommand", cmd, err)
+		log.Error("ERROR RunCommand", cmd, err)
 		return
 	}
 
 	if exit_code != 0 {
-		fmt.Println("ERROR bad exit code:", exit_code)
+		log.Error("ERROR bad exit code:", exit_code)
 		return
 	}
 
@@ -257,9 +264,9 @@ func build_image(c *cli.Context) {
 
 	err = clone.Stop()
 	if err != nil {
-		fmt.Println("ERROR stop", err)
+		log.Error("ERROR stop", err)
 	}
-	fmt.Println("stopped container with runtime delta at", delta_path)
+	log.Info("stopped container with runtime delta at", delta_path)
 
 	// simple file convention for container file system
 	// rename the delta into rootfs, ie LXPATH / NAME / rootfs /
@@ -269,16 +276,16 @@ func build_image(c *cli.Context) {
 
 	new_meta_blob, err := json.MarshalIndent(meta, "", "   ")
 	if err != nil {
-		fmt.Println("ERROR marshal", err)
+		log.Error("ERROR marshal", err)
 		return
 	}
 
 	ioutil.WriteFile(metadata_path, new_meta_blob, 0422)
 
-	fmt.Println("rename", delta_path, "->", rootfs_dir)
+	log.Debug("rename", delta_path, "->", rootfs_dir)
 	err = os.Rename(delta_path, rootfs_dir)
 	if err != nil {
-		fmt.Println("ERROR:", err)
+		log.Error("Rename:", err)
 		return
 	}
 
@@ -293,7 +300,7 @@ func build_image(c *cli.Context) {
 		if FileExists(include_file) {
 			err = MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
 			if err != nil {
-				fmt.Println("ERROR MergeTree", include_file, err)
+				log.Error("MergeTree", include_file, err)
 				return
 			}
 		}
@@ -310,14 +317,14 @@ func build_image(c *cli.Context) {
 
 	cmdline := []string{"tar", tar_flags, archive_path, meta.Name}
 
-	fmt.Println("tar command", cmdline)
+	log.Debug("tar command", cmdline)
 	tar_cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	tar_cmd.Dir = opts.lxcpath
 	tar_cmd.Stdout = os.Stdout
 	tar_cmd.Stderr = os.Stderr
 	err = tar_cmd.Run()
 	if err != nil {
-		fmt.Println("ERROR tar", err)
+		log.Error("ERROR tar", err)
 		return
 	}
 

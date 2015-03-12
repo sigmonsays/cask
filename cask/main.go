@@ -28,9 +28,14 @@ func main() {
 			Name:  "level, l",
 			Value: "WARN",
 		},
+		cli.IntFlag{
+			Name:  "wait",
+			Usage: "wait max",
+			Value: 2,
+		},
 		cli.DurationFlag{
 			Name:  "wait-timeout, w",
-			Value: time.Duration(2) * time.Second,
+			Value: time.Duration(3) * time.Second,
 		},
 		cli.DurationFlag{
 			Name:  "net-timeout",

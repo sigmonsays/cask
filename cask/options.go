@@ -27,6 +27,7 @@ func GetCommonOptions(c *cli.Context) *CommonOptions {
 	opts.verbose = c.GlobalBool("verbose")
 	opts.waitMask = c.GlobalInt("wait")
 	opts.waitTimeout = c.GlobalDuration("wait-timeout")
-	opts.waitNetworkTimeout = c.GlobalDuration("network-timeout")
+	opts.waitNetworkTimeout = c.GlobalDuration("net-timeout")
+	log.Tracef("common options %+v", opts)
 	return opts
 }

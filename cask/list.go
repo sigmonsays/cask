@@ -1,37 +1,30 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"github.com/codegangsta/cli"
 	"gopkg.in/lxc/go-lxc.v2"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
 type ListOptions struct {
-
-	// be more verbose in some cases
-	verbose bool
+	*CommonOptions
 
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
-
-	// lxcpath where lxc config is stored, ie /var/lib/lxc
-	lxcpath string
 
 	// name of the container
 	name string
 }
 
-func list() {
+func list(c *cli.Context) {
 
-	opts := &ListOptions{}
-
-	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	f.BoolVar(&opts.verbose, "verbose", false, "be verbose")
-	f.StringVar(&opts.lxcpath, "lxcpath", lxc.DefaultConfigPath(), "Use specified container path")
-	f.Parse(os.Args[2:])
+	opts := &ListOptions{
+		CommonOptions: GetCommonOptions(c),
+		name:          c.String("name"),
+		runtime:       c.String("runtime"),
+	}
 
 	runtimepath := filepath.Join(opts.lxcpath, opts.runtime)
 

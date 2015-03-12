@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
+	"github.com/codegangsta/cli"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
@@ -14,15 +14,10 @@ import (
 )
 
 type LaunchOptions struct {
-
-	// be more verbose in some cases
-	verbose bool
+	*CommonOptions
 
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
-
-	// lxcpath where lxc config is stored, ie /var/lib/lxc
-	lxcpath string
 
 	// name of the container
 	name string
@@ -31,7 +26,6 @@ type LaunchOptions struct {
 	waitMask int
 
 	// wait times in seconds
-	waitTimeout, waitNetworkTimeout int
 	WaitTimeout, WaitNetworkTimeout time.Duration
 }
 
@@ -40,21 +34,16 @@ const (
 	WaitMaskNetwork
 )
 
-func launch() {
+func launch(c *cli.Context) {
 
 	opts := &LaunchOptions{
-		waitMask:           3,
-		waitTimeout:        3,
-		waitNetworkTimeout: 10,
+		CommonOptions:      GetCommonOptions(c),
+		name:               c.String("name"),
+		WaitTimeout:        c.Duration("waittimeout"),
+		WaitNetworkTimeout: c.Duration("networktimeout"),
+		runtime:            c.String("runtime"),
+		waitMask:           c.Int("wait"),
 	}
-
-	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	f.BoolVar(&opts.verbose, "verbose", false, "be verbose")
-	f.StringVar(&opts.runtime, "runtime", "", "specify runtime to use")
-	f.StringVar(&opts.lxcpath, "lxcpath", lxc.DefaultConfigPath(), "Use specified container path")
-	f.StringVar(&opts.name, "name", "", "specify container name")
-	f.IntVar(&opts.waitMask, "wait", 2, "wait for container and network to start")
-	f.Parse(os.Args[2:])
 
 	if opts.name == "" {
 		opts.name = fmt.Sprintf("container-%d", os.Getpid())
@@ -64,10 +53,7 @@ func launch() {
 		return
 	}
 
-	opts.WaitTimeout = time.Duration(opts.waitTimeout) * time.Second
-	opts.WaitNetworkTimeout = time.Duration(opts.waitNetworkTimeout) * time.Second
-
-	archivepath := f.Args()[0]
+	archivepath := c.Args().First()
 	fmt.Println("launch", opts.name, "using", archivepath)
 
 	containerpath := filepath.Join(opts.lxcpath, opts.name)

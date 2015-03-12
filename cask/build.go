@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
+	"github.com/codegangsta/cli"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
@@ -18,15 +18,13 @@ import (
 const waitTimeout = time.Duration(3) * time.Second
 
 type BuildOptions struct {
+	*CommonOptions
 
 	// be more verbose in some cases
 	verbose bool
 
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
-
-	// lxcpath where lxc config is stored, ie /var/lib/lxc
-	lxcpath string
 
 	// cask path where our rootfs and bootstrap script is found
 	caskpath string
@@ -48,29 +46,25 @@ func monitor() *exec.Cmd {
 	return cmd
 }
 
-func build() {
+func build(c *cli.Context) {
 	cmd := monitor()
-	build_image()
+	build_image(c)
 	cmd.Process.Signal(os.Interrupt)
 	cmd.Wait()
 }
 
-func build_image() {
+func build_image(c *cli.Context) {
 
-	cask_binary := os.Args[0]
+	// cask_binary := os.Args[0]
 
 	opts := &BuildOptions{
-		caskpath:           "cask",
+		CommonOptions:      GetCommonOptions(c),
 		waitNetworkTimeout: time.Duration(1) * time.Second,
-		keep_container:     false,
+		keep_container:     c.Bool("keep"),
+		verbose:            c.Bool("verbose"),
+		runtime:            c.String("runtime"),
+		caskpath:           c.String("caskpath"),
 	}
-
-	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	f.BoolVar(&opts.verbose, "verbose", false, "be verbose")
-	f.StringVar(&opts.runtime, "runtime", "", "specify runtime to use")
-	f.StringVar(&opts.lxcpath, "lxcpath", lxc.DefaultConfigPath(), "Use specified container path")
-	f.StringVar(&opts.caskpath, "caskpath", opts.caskpath, "override cask path")
-	f.Parse(os.Args[2:])
 
 	fmt.Println("lxcpath", opts.lxcpath)
 	fmt.Println("cask build runtime", opts.runtime)
@@ -155,7 +149,7 @@ func build_image() {
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Println("ERROR CopyTree", err)
 		return
 	}
 
@@ -166,18 +160,20 @@ func build_image() {
 	os.MkdirAll(container_path("/cask/bin"), 0544)
 
 	// copy the cask executable itself into the container
-	err = CopyFile(cask_binary, container_path("/cask/bin/cask"), 0544)
-	if err != nil {
-		fmt.Println("ERROR", err)
-		return
-	}
+	/*
+		err = CopyFile(cask_binary, container_path("/cask/bin/cask"), 0544)
+		if err != nil {
+			fmt.Println("ERROR CopyFile", err)
+			return
+		}
+	*/
 
 	// save a copy of the config in the container
 	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
 
 	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Println("ERROR Create", err)
 		return
 	}
 	keys := runtime.ConfigKeys()
@@ -253,7 +249,7 @@ func build_image() {
 	cmd := []string{"sh", "-c", "/cask/bootstrap"}
 	exit_code, err := clone.RunCommandStatus(cmd, attach_options)
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Println("ERROR RunCommand", cmd, err)
 		return
 	}
 

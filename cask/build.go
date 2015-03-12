@@ -62,7 +62,7 @@ func build_image() {
 	opts := &BuildOptions{
 		caskpath:           "cask",
 		waitNetworkTimeout: time.Duration(1) * time.Second,
-		keep_container:     true,
+		keep_container:     false,
 	}
 
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -152,7 +152,7 @@ func build_image() {
 	fmt.Println("container path", containerpath)
 	fmt.Println("archive path", archive_path)
 
-	// add our script to the rootfs
+	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
 	if err != nil {
 		fmt.Println("ERROR", err)
@@ -173,9 +173,9 @@ func build_image() {
 	}
 
 	// save a copy of the config in the container
-	os.MkdirAll(containerpath, 0755)
+	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
 
-	fh, err := os.Create(filepath.Join(containerpath, "container-config"))
+	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))
 	if err != nil {
 		fmt.Println("ERROR", err)
 		return
@@ -262,6 +262,9 @@ func build_image() {
 		return
 	}
 
+	// remove rootfs/cask path from container
+	os.RemoveAll(cask_path)
+
 	err = clone.Stop()
 	if err != nil {
 		fmt.Println("ERROR stop", err)
@@ -282,10 +285,28 @@ func build_image() {
 
 	ioutil.WriteFile(metadata_path, new_meta_blob, 0422)
 
+	fmt.Println("rename", delta_path, "->", rootfs_dir)
 	err = os.Rename(delta_path, rootfs_dir)
 	if err != nil {
 		fmt.Println("ERROR:", err)
 		return
+	}
+
+	// copy our cask into the container path next to rootfs
+	included_files := []string{
+		"meta.json",
+		"launch",
+		"bootstrap",
+	}
+	for _, filename := range included_files {
+		include_file := filepath.Join(opts.caskpath, filename)
+		if FileExists(include_file) {
+			err = MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
+			if err != nil {
+				fmt.Println("ERROR CopyTree", include_file, err)
+				return
+			}
+		}
 	}
 
 	os.Mkdir(delta_path, 0644)

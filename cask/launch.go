@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
 	"os"
@@ -70,6 +71,7 @@ func launch() {
 	fmt.Println("launch", opts.name, "using", archivepath)
 
 	containerpath := filepath.Join(opts.lxcpath, opts.name)
+	caskpath := filepath.Join(containerpath, "cask")
 	configpath := filepath.Join(containerpath, "config")
 	metadatapath := filepath.Join(containerpath, "meta.json")
 	rootfspath := filepath.Join(containerpath, "rootfs")
@@ -201,6 +203,13 @@ func launch() {
 	ioutil.WriteFile(hostnamepath, []byte(opts.name), 0444)
 
 	fmt.Println("configured", opts.lxcpath, opts.name)
+
+	// add our script to the rootfs (temporary, we'll delete later)
+	err = shutil.CopyTree(caskpath, filepath.Join(rootfspath, "cask"), nil)
+	if err != nil {
+		fmt.Println("ERROR", err)
+		return
+	}
 
 	// start the container
 	err = container.Start()

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func FileExists(path string) bool {
@@ -37,30 +38,38 @@ func GetDefaultRuntime() string {
 }
 
 // copy a file tree from src to dst
-func CopyTree(src, dst string) error {
+// destination can exist and the files in src are merged with destination
+func MergeTree(src, dst string, strip int) error {
 	var err error
 	offset := len(src)
-	fmt.Println("copytree", src, "to", dst)
+	fmt.Println("MergeTree", src, "to", dst)
 	var newpath string
 	walkfn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println("walk", path, err)
 			return err
 		}
-		newpath = filepath.Join(src, path[offset:])
+
+		tmp := strings.Split(path[offset:], "/")
+		if strip < len(tmp) {
+			newpath = filepath.Join(dst, strings.Join(tmp[strip:], "/"))
+		} else {
+			newpath = filepath.Join(dst, path[offset:])
+		}
+
+		os.MkdirAll(filepath.Dir(newpath), info.Mode())
 
 		if info.IsDir() {
 			os.MkdirAll(newpath, info.Mode())
 			return nil
 		} else if info.Mode().IsRegular() {
-			err = shutil.CopyFile(path, newpath, false)
+			err = CopyFile(path, newpath, int(info.Mode()))
 			if err != nil {
 				fmt.Println("ERROR copytree", newpath, err)
 			}
 		} else {
 			fmt.Println("WARNING: skipping", path)
 		}
-		fmt.Println("copytree: copied", newpath)
 		return nil
 	}
 	err = filepath.Walk(src, walkfn)

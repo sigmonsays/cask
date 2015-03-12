@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-   CheckPrerequisites()
+	CheckPrerequisites()
 
 	app := cli.NewApp()
 	app.Name = "cask"

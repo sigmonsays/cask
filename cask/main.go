@@ -21,6 +21,9 @@ func main() {
 			Name:  "lxcpath",
 			Value: lxc.DefaultConfigPath(),
 		},
+		cli.BoolFlag{
+			Name: "verbose",
+		},
 		cli.StringFlag{
 			Name:  "level",
 			Value: "WARN",
@@ -64,7 +67,7 @@ func main() {
 			Usage: "launch a image as a new container",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name",
+					Name:  "name, n",
 					Value: "",
 				},
 				cli.StringFlag{
@@ -81,7 +84,7 @@ func main() {
 			Usage: "show container config",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name",
+					Name:  "name, n",
 					Value: "",
 				},
 				cli.StringFlag{
@@ -98,7 +101,7 @@ func main() {
 			Usage: "list containers",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name",
+					Name:  "name, n",
 					Value: "",
 				},
 				cli.StringFlag{
@@ -138,6 +141,19 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 				stop(c)
+			},
+		},
+		{
+			Name:  "destroy",
+			Usage: "delete a container",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				destroy(c)
 			},
 		},
 		{

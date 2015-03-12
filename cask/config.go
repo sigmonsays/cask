@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"gopkg.in/lxc/go-lxc.v2"
-	"path/filepath"
 )
 
 type ConfigOptions struct {
@@ -25,32 +24,39 @@ func config(c *cli.Context) {
 		name:          c.String("name"),
 	}
 
-	runtimepath := filepath.Join(opts.lxcpath, opts.runtime)
-
-	fmt.Println("runtime", opts.runtime)
-	fmt.Println("runtimepath", runtimepath)
-
-	runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR getting runtime container", err)
+		fmt.Println("ERROR getting container", err)
 		return
 	}
-
-	fmt.Println("-- runtime configuration --")
-
-	network := runtime.ConfigItem("lxc.network")
-	fmt.Println("network", network)
-
-	keys := runtime.ConfigKeys()
+	keys := container.ConfigKeys()
 	for _, key := range keys {
-		values := runtime.ConfigItem(key)
-		fmt.Printf("#%s %#v\n", key, values)
+		values := container.ConfigItem(key)
 
 		for _, value := range values {
 			if value == "" {
 				continue
 			}
-			fmt.Printf("%s = %s\n", key, value)
+			fmt.Printf("[container] %s = %s\n", key, value)
+		}
+	}
+
+	if opts.verbose {
+		runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
+		if err != nil {
+			fmt.Println("ERROR getting runtime container", err)
+			return
+		}
+		keys := runtime.ConfigKeys()
+		for _, key := range keys {
+			values := runtime.ConfigItem(key)
+
+			for _, value := range values {
+				if value == "" {
+					continue
+				}
+				fmt.Printf("[runtime] %s = %s\n", key, value)
+			}
 		}
 	}
 

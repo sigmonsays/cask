@@ -92,6 +92,7 @@ func build_image(c *cli.Context) {
 	}
 
 	container := fmt.Sprintf("build-%d", os.Getpid())
+   log.Tracef("temporary container name %s", container)
 	clone_options := lxc.CloneOptions{
 		Backend:  lxc.Aufs,
 		Snapshot: true,
@@ -110,7 +111,9 @@ func build_image(c *cli.Context) {
 	}
 
 	if opts.keep_container == false {
-		defer clone.Destroy()
+		defer func() {
+         clone.Destroy()
+      }()
 	}
 
 	rootfs_values := clone.ConfigItem("lxc.rootfs")
@@ -119,9 +122,20 @@ func build_image(c *cli.Context) {
 		return
 	}
 	rootfs_tmp := strings.Split(rootfs_values[0], ":")
-	delta_path := rootfs_tmp[2]
-	cask_rootfs := filepath.Join(opts.caskpath, "rootfs")
-	cask_path := filepath.Join(delta_path, "cask")
+   log.Tracef("clone has rootfs %s", rootfs_tmp)
+
+   var delta_path string
+   var cask_rootfs string
+   var cask_path string
+   if len(rootfs_tmp) > 2 {
+      delta_path = rootfs_tmp[2]
+      cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
+      cask_path = filepath.Join(delta_path, "cask")
+   } else {
+      delta_path = rootfs_values[0]
+      cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
+      cask_path = filepath.Join(delta_path, "cask")
+   }
 
 	containerpath := filepath.Join(opts.lxcpath, meta.Name)
 	rootfs_dir := filepath.Join(containerpath, "rootfs")
@@ -138,7 +152,7 @@ func build_image(c *cli.Context) {
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
 	if err != nil {
-		fmt.Println("ERROR CopyTree", err)
+		fmt.Println("ERROR CopyTree", opts.caskpath, "to", cask_path, err)
 		return
 	}
 
@@ -279,7 +293,7 @@ func build_image(c *cli.Context) {
 		if FileExists(include_file) {
 			err = MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
 			if err != nil {
-				fmt.Println("ERROR CopyTree", include_file, err)
+				fmt.Println("ERROR MergeTree", include_file, err)
 				return
 			}
 		}

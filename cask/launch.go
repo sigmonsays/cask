@@ -73,6 +73,7 @@ func launch() {
 	configpath := filepath.Join(containerpath, "config")
 	metadatapath := filepath.Join(containerpath, "meta.json")
 	rootfspath := filepath.Join(containerpath, "rootfs")
+	hostnamepath := filepath.Join(rootfspath, "etc/hostname")
 	mountpath := filepath.Join(containerpath, "fstab")
 
 	fmt.Println("containerpath", containerpath)
@@ -189,6 +190,8 @@ func launch() {
 	}
 
 	os.MkdirAll(rootfspath, 0755)
+	os.MkdirAll(filepath.Join(rootfspath, "/etc"), 0755)
+	ioutil.WriteFile(hostnamepath, []byte(opts.name), 0444)
 
 	fmt.Println("configured", opts.lxcpath, opts.name)
 

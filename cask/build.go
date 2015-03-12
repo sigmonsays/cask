@@ -184,7 +184,6 @@ func build_image() {
 	for _, key := range keys {
 		values := runtime.ConfigItem(key)
 
-		fmt.Println("blah", key, "--->", len(values), "=", values)
 		if len(values) == 0 {
 			continue
 		}

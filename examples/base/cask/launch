@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo launch script executing...
+
+key=/etc/ssh/ssh_host_key
+ssh-keygen -f $key -P '' -C ''
+chmod 600 $key

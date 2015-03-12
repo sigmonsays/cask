@@ -80,16 +80,38 @@ func launch() {
 	fmt.Println("metadata path", metadatapath)
 	fmt.Println("rootfs path", rootfspath)
 
-	if _, err := os.Stat(archivepath); err != nil {
-		fmt.Println("ERROR: Archive not found:", archivepath, err)
+	if FileExists(archivepath) == false {
+		fmt.Println("ERROR: Archive not found:", archivepath)
 		return
 	}
 
+	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	if err != nil {
+		fmt.Println("ERROR NewContainer", err)
+		return
+	}
+
+	if container.Defined() {
+		fmt.Println("destroying existing container", opts.name)
+		err := container.Stop()
+		if err != nil {
+			fmt.Println("WARN Stop", opts.name, err)
+		}
+		container.Destroy()
+	}
+
+	fmt.Println("extracting", archivepath, "in", containerpath)
 	os.MkdirAll(containerpath, 0755)
-	cmdline := []string{"tar", "--strip-components=1", "-vzxf", archivepath}
+	tar_flag := "-vzxf"
+	if opts.verbose == false {
+		tar_flag = "-zxf"
+	}
+	cmdline := []string{"tar", "--strip-components=1", tar_flag, archivepath}
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	cmd.Dir = containerpath
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		fmt.Printf("ERROR (in %s) Command %s: %s\n", cmd.Dir, cmdline, err)
 		return
@@ -123,21 +145,6 @@ func launch() {
 
 	fmt.Println("runtime lxc config path", lxcruntimepath)
 	fmt.Println("runtime path", runtimepath)
-
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
-	if err != nil {
-		fmt.Println("ERROR NewContainer", err)
-		return
-	}
-
-	if container.Defined() {
-		fmt.Println("destroying container", opts.name)
-		err := container.Stop()
-		if err != nil {
-			fmt.Println("WARN Stop", opts.name, err)
-		}
-		container.Destroy()
-	}
 
 	container.ClearConfig()
 
@@ -217,4 +224,22 @@ func launch() {
 		}
 	}
 
+	// execute launch script now
+	if FileExists(filepath.Join(rootfspath, "/cask/launch")) {
+		attach_options := lxc.DefaultAttachOptions
+		attach_options.ClearEnv = false
+		cmdline := []string{"sh", "-c", "/cask/launch"}
+		exit_code, err := container.RunCommandStatus(cmdline, attach_options)
+		if err != nil {
+			fmt.Println("ERROR", cmdline, err)
+			return
+		}
+		if exit_code != 0 {
+			fmt.Println("ERROR bad exit code:", cmdline, exit_code)
+			return
+		}
+
+	}
+
+	fmt.Println("container", opts.name, "is running")
 }

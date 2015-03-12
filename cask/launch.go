@@ -249,6 +249,8 @@ func launch() {
 		}
 
 	}
+	// if we want to remove the /cask path from the container...
+	// os.RemoveAll(filepath.Join(rootfspath, "cask"))
 
 	fmt.Println("container", opts.name, "is running")
 }

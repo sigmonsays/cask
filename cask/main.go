@@ -10,6 +10,8 @@ import (
 
 func main() {
 
+   CheckPrerequisites()
+
 	app := cli.NewApp()
 	app.Name = "cask"
 	app.Usage = "manage container lifecycle"
@@ -136,6 +138,13 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 				stop(c)
+			},
+		},
+		{
+			Name:  "info",
+			Usage: "show generic info",
+			Action: func(c *cli.Context) {
+				info(c)
 			},
 		},
 	}

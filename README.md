@@ -35,8 +35,8 @@ install cask
 
 build your first container from this example directory
 
-    sudo cask build -caskpath examples/golang/cask
+    sudo cask build --caskpath examples/golang/cask
 
 launch an image
 
-    sudo cask launch -name example-1 /srv/lxc/example.tar.gz
+    sudo cask launch --name example-1 /srv/lxc/example.tar.gz

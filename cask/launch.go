@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 type LaunchOptions struct {
@@ -24,17 +25,34 @@ type LaunchOptions struct {
 
 	// name of the container
 	name string
+
+	// what states to wait for
+	waitMask int
+
+	// wait times in seconds
+	waitTimeout, waitNetworkTimeout int
+	WaitTimeout, WaitNetworkTimeout time.Duration
 }
+
+const (
+	WaitMaskStart = iota
+	WaitMaskNetwork
+)
 
 func launch() {
 
-	opts := &LaunchOptions{}
+	opts := &LaunchOptions{
+		waitMask:           3,
+		waitTimeout:        3,
+		waitNetworkTimeout: 10,
+	}
 
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	f.BoolVar(&opts.verbose, "verbose", false, "be verbose")
 	f.StringVar(&opts.runtime, "runtime", "", "specify runtime to use")
 	f.StringVar(&opts.lxcpath, "lxcpath", lxc.DefaultConfigPath(), "Use specified container path")
 	f.StringVar(&opts.name, "name", "", "specify container name")
+	f.IntVar(&opts.waitMask, "wait", 2, "wait for container and network to start")
 	f.Parse(os.Args[2:])
 
 	if opts.name == "" {
@@ -44,6 +62,9 @@ func launch() {
 		fmt.Println("ERROR: Need archive path")
 		return
 	}
+
+	opts.WaitTimeout = time.Duration(opts.waitTimeout) * time.Second
+	opts.WaitNetworkTimeout = time.Duration(opts.waitNetworkTimeout) * time.Second
 
 	archivepath := f.Args()[0]
 	fmt.Println("launch", opts.name, "using", archivepath)
@@ -176,6 +197,21 @@ func launch() {
 	if err != nil {
 		fmt.Println("ERROR Start", opts.name, err)
 		return
+	}
+
+	// wait for container to start up....
+	if opts.waitMask >= WaitMaskStart {
+		container.Wait(lxc.RUNNING, opts.WaitTimeout)
+	}
+
+	if opts.waitMask >= WaitMaskNetwork {
+		fmt.Println("container started, waiting for network..")
+		// wait for it to startup and get network
+		iplist, err := container.WaitIPAddresses(opts.WaitNetworkTimeout)
+		fmt.Println("iplist", iplist)
+		if err != nil {
+			fmt.Println("WARNING did not get ip address from container", err)
+		}
 	}
 
 }

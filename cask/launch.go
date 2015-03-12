@@ -6,10 +6,14 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type LaunchOptions struct {
@@ -17,6 +21,9 @@ type LaunchOptions struct {
 
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
+
+	// do not perform any caching (for downloading)
+	nocache bool
 
 	// name of the container
 	name string
@@ -27,6 +34,7 @@ func launch(c *cli.Context) {
 	opts := &LaunchOptions{
 		CommonOptions: GetCommonOptions(c),
 		name:          c.String("name"),
+		nocache:       c.Bool("nocache"),
 		runtime:       c.String("runtime"),
 	}
 
@@ -38,7 +46,37 @@ func launch(c *cli.Context) {
 		return
 	}
 
-	archivepath := c.Args().First()
+	archive := c.Args().First()
+	var archivepath string
+	if strings.HasPrefix(archive, "http") {
+		_, err := url.Parse(archive)
+		if err != nil {
+			log.Errorf("bad url: %s: %s", archive, err)
+			return
+		}
+		suffix := ".tar.gz"
+		archivepath = filepath.Join(opts.lxcpath, opts.name) + suffix
+
+		if FileExists(archivepath) == false || opts.nocache == true {
+			log.Info("downloading", archive, "to", archivepath)
+			f, err := os.Create(archivepath)
+			if err != nil {
+				log.Errorf("bad url: %s: %s", archive, err)
+				return
+			}
+
+			resp, err := http.Get(archive)
+			if err != nil {
+				log.Errorf("download: %s: %s", archive, err)
+				return
+			}
+			io.Copy(f, resp.Body)
+			resp.Body.Close()
+			f.Close()
+			fmt.Println("downloaded", archive)
+		}
+	}
+
 	fmt.Println("launch", opts.name, "using", archivepath)
 
 	containerpath := filepath.Join(opts.lxcpath, opts.name)

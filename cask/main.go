@@ -25,7 +25,7 @@ func main() {
 			Name: "verbose",
 		},
 		cli.StringFlag{
-			Name:  "level",
+			Name:  "level, l",
 			Value: "WARN",
 		},
 		cli.DurationFlag{
@@ -73,6 +73,9 @@ func main() {
 				cli.StringFlag{
 					Name:  "runtime",
 					Value: "",
+				},
+				cli.BoolFlag{
+					Name: "nocache",
 				},
 			},
 			Action: func(c *cli.Context) {

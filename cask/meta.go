@@ -10,5 +10,5 @@ type Meta struct {
 type BuildParams struct {
 
 	// glob patterns of files to exclude in the saved image
-	Exclude []string
+	Exclude []string `json:"exclude"`
 }

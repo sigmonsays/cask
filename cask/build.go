@@ -164,6 +164,7 @@ func build_image(c *cli.Context) {
 	os.MkdirAll(container_path("/cask/bin"), 0544)
 
 	// save a copy of the config in the container
+	// copy the runtime configuration
 	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
 
 	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))

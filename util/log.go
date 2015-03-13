@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	gologging "github.com/sigmonsays/go-logging"
@@ -7,5 +7,5 @@ import (
 var log gologging.Logger
 
 func init() {
-	log = gologging.Register("cask", func(newlog gologging.Logger) { log = newlog })
+	log = gologging.Register("util", func(newlog gologging.Logger) { log = newlog })
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
+	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
@@ -193,6 +194,22 @@ func build_image(c *cli.Context) {
 		}
 	}
 	fh.Close()
+
+	// extract any images from the build
+	for _, image := range meta.Build.Images {
+		log.Debugf("adding image %s to container", image)
+		image_archive, err := LocateImage(opts.lxcpath, image)
+		if err != nil {
+			log.Errorf("Unable to locate image %s: %s", image, err)
+			return
+		}
+
+		err = UntarImage(image_archive, delta_path, opts.verbose)
+		if err != nil {
+			log.Errorf("Unable to extract image %s: %s", image_archive, err)
+			return
+		}
+	}
 
 	// walk the rootfs dir and add all the files into the destination rootfs
 	offset := len(cask_rootfs)

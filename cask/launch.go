@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
+	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -113,20 +113,9 @@ func launch(c *cli.Context) {
 		container.Destroy()
 	}
 
-	fmt.Println("extracting", archivepath, "in", containerpath)
-	os.MkdirAll(containerpath, 0755)
-	tar_flag := "-vzxf"
-	if opts.verbose == false {
-		tar_flag = "-zxf"
-	}
-	cmdline := []string{"tar", "--strip-components=1", tar_flag, archivepath}
-	cmd := exec.Command(cmdline[0], cmdline[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = containerpath
-	err = cmd.Run()
+	err = UntarImage(archivepath, containerpath, opts.verbose)
 	if err != nil {
-		fmt.Printf("ERROR (in %s) Command %s: %s\n", cmd.Dir, cmdline, err)
+		log.Errorf("UntarImage (in %s): %s\n", containerpath, err)
 		return
 	}
 

@@ -42,7 +42,7 @@ func launch(c *cli.Context) {
 		opts.name = fmt.Sprintf("container-%d", os.Getpid())
 	}
 	if len(os.Args) < 3 {
-		fmt.Println("ERROR: Need archive path")
+		log.Error("Need archive path")
 		return
 	}
 
@@ -73,13 +73,13 @@ func launch(c *cli.Context) {
 			io.Copy(f, resp.Body)
 			resp.Body.Close()
 			f.Close()
-			fmt.Println("downloaded", archive)
+			log.Info("downloaded", archive)
 		}
 	} else {
 		archivepath = archive
 	}
 
-	fmt.Println("launch", opts.name, "using", archivepath)
+	log.Info("launch", opts.name, "using", archivepath)
 
 	containerpath := filepath.Join(opts.lxcpath, opts.name)
 	caskpath := filepath.Join(containerpath, "cask")
@@ -89,26 +89,26 @@ func launch(c *cli.Context) {
 	hostnamepath := filepath.Join(rootfspath, "etc/hostname")
 	mountpath := filepath.Join(containerpath, "fstab")
 
-	fmt.Println("containerpath", containerpath)
-	fmt.Println("metadata path", metadatapath)
-	fmt.Println("rootfs path", rootfspath)
+	log.Debug("containerpath", containerpath)
+	log.Debug("metadata path", metadatapath)
+	log.Debug("rootfs path", rootfspath)
 
 	if FileExists(archivepath) == false {
-		fmt.Println("ERROR: Archive not found:", archivepath)
+		log.Error("Archive not found:", archivepath)
 		return
 	}
 
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR NewContainer", err)
+		log.Error("NewContainer", err)
 		return
 	}
 
 	if container.Defined() {
-		fmt.Println("destroying existing container", opts.name)
+		log.Info("destroying existing container", opts.name)
 		err := container.Stop()
 		if err != nil {
-			fmt.Println("WARN Stop", opts.name, err)
+			log.Warn("Stop", opts.name, err)
 		}
 		container.Destroy()
 	}
@@ -123,30 +123,30 @@ func launch(c *cli.Context) {
 
 	meta_blob, err := ioutil.ReadFile(metadatapath)
 	if err != nil {
-		fmt.Println("ERROR ReadFile", metadatapath, err)
+		log.Error("ReadFile", metadatapath, err)
 		return
 	}
 
 	err = json.Unmarshal(meta_blob, meta)
 	if err != nil {
-		fmt.Println("ERROR Unmarshal", err)
+		log.Error("Unmarshal", err)
 		return
 	}
 
-	fmt.Println("runtime", meta.Runtime)
+	log.Debug("runtime", meta.Runtime)
 
 	lxcruntimepath := filepath.Join(opts.lxcpath, meta.Runtime)
 	runtime, err := lxc.NewContainer(meta.Runtime, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR getting runtime container", err)
+		log.Error("getting runtime container", err)
 		return
 	}
 
 	runtime_rootfs_values := runtime.ConfigItem("lxc.rootfs")
 	runtimepath := runtime_rootfs_values[0]
 
-	fmt.Println("runtime lxc config path", lxcruntimepath)
-	fmt.Println("runtime path", runtimepath)
+	log.Debug("runtime lxc config path", lxcruntimepath)
+	log.Debug("runtime path", runtimepath)
 
 	container.ClearConfig()
 
@@ -154,7 +154,7 @@ func launch(c *cli.Context) {
 
 	fstab, err := os.Create(mountpath)
 	if err != nil {
-		fmt.Println("ERROR Create", mountpath, err)
+		log.Error("Create", mountpath, err)
 		return
 	}
 
@@ -162,7 +162,7 @@ func launch(c *cli.Context) {
 	fstab.Close()
 
 	// merge config in from meta
-	fmt.Println("merge config")
+	log.Debug("merge config")
 	for key, values := range meta.Config {
 
 		if key == "lxc.network" {
@@ -182,18 +182,18 @@ func launch(c *cli.Context) {
 	container.SetConfigItem("lxc.rootfs", rootfs)
 	container.SetConfigItem("lxc.mount", mountpath)
 
-	fmt.Println("config network")
+	log.Debug("config network")
 	container.SetConfigItem("lxc.network.type", "veth")
 	container.SetConfigItem("lxc.network.link", "lxcbr0")
 	container.SetConfigItem("lxc.network.flags", "up")
 	container.SetConfigItem("lxc.network.hwaddr", "00:16:3e:xx:xx:xx")
 
 	if container.Defined() == false {
-		fmt.Println("container", opts.name, "not defined, creating..")
+		log.Debug("container", opts.name, "not defined, creating..")
 
 		err := container.SaveConfigFile(configpath)
 		if err != nil {
-			fmt.Println("ERROR SaveConfig", err)
+			log.Error("SaveConfig", err)
 			return
 		}
 	}
@@ -202,19 +202,19 @@ func launch(c *cli.Context) {
 	os.MkdirAll(filepath.Join(rootfspath, "/etc"), 0755)
 	ioutil.WriteFile(hostnamepath, []byte(opts.name), 0444)
 
-	fmt.Println("configured", opts.lxcpath, opts.name)
+	log.Info("configured", opts.lxcpath, opts.name)
 
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(caskpath, filepath.Join(rootfspath, "cask"), nil)
 	if err != nil {
-		fmt.Println("ERROR", err)
+		log.Error("CopyTree", err)
 		return
 	}
 
 	// start the container
 	err = container.Start()
 	if err != nil {
-		fmt.Println("ERROR Start", opts.name, err)
+		log.Error("Start", opts.name, err)
 		return
 	}
 
@@ -223,14 +223,19 @@ func launch(c *cli.Context) {
 		container.Wait(lxc.RUNNING, opts.waitTimeout)
 	}
 
+	var ip string
+	var iplist []string
 	if opts.waitMask >= WaitMaskNetwork {
-		fmt.Println("container started, waiting for network..")
+		log.Info("container started, waiting for network..")
 		// wait for it to startup and get network
-		iplist, err := container.WaitIPAddresses(opts.waitNetworkTimeout)
-		fmt.Println("iplist", iplist)
+		iplist, err = container.WaitIPAddresses(opts.waitNetworkTimeout)
+		log.Debug("iplist", iplist)
 		if err != nil {
-			fmt.Println("WARNING did not get ip address from container", err)
+			log.Warn("did not get ip address from container", err)
 		}
+	}
+	if len(iplist) > 0 {
+		ip = iplist[0]
 	}
 
 	// execute launch script now
@@ -240,11 +245,11 @@ func launch(c *cli.Context) {
 		cmdline := []string{"sh", "-c", "/cask/launch"}
 		exit_code, err := container.RunCommandStatus(cmdline, attach_options)
 		if err != nil {
-			fmt.Println("ERROR", cmdline, err)
+			log.Error("RunCommandStatus", cmdline, err)
 			return
 		}
 		if exit_code != 0 {
-			fmt.Println("ERROR bad exit code:", cmdline, exit_code)
+			log.Error("bad exit code:", cmdline, exit_code)
 			return
 		}
 
@@ -252,5 +257,9 @@ func launch(c *cli.Context) {
 	// if we want to remove the /cask path from the container...
 	// os.RemoveAll(filepath.Join(rootfspath, "cask"))
 
-	fmt.Println("container", opts.name, "is running")
+	if len(ip) > 0 {
+		log.Info("container", opts.name, "is running with ip", ip)
+	} else {
+		log.Info("container", opts.name, "is running")
+	}
 }

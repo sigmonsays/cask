@@ -6,7 +6,7 @@ import (
 )
 
 func UntarImage(archive, containerpath string, verbose bool) error {
-	log.Infof("extracting", archive, "in", containerpath)
+	log.Infof("extracting %s in %s", archive, containerpath)
 	os.MkdirAll(containerpath, 0755)
 	tar_flag := "-vzxf"
 	if verbose == false {

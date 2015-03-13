@@ -72,6 +72,7 @@ func build_image(c *cli.Context) {
 		log.Error("ERROR meta.json:", err)
 		return
 	}
+	log.Tracef("meta %+v", meta)
 
 	if meta.Config == nil {
 		meta.Config = make(map[string][]string, 0)
@@ -193,7 +194,6 @@ func build_image(c *cli.Context) {
 	fh.Close()
 
 	// walk the rootfs dir and add all the files into the destination rootfs
-
 	offset := len(cask_rootfs)
 	log.Debug("copy rootfs", cask_rootfs)
 	newpath := ""
@@ -308,6 +308,23 @@ func build_image(c *cli.Context) {
 
 	os.Mkdir(delta_path, 0644)
 
+	// process image exclusions
+	for _, exclude := range meta.Build.Exclude {
+		log.Tracef("processing image exclusion %s for container path %s", exclude, containerpath)
+		matches, err := filepath.Glob(containerpath + "/rootfs/" + exclude)
+		if err != nil {
+			log.Warnf("glob [%s] error %s", exclude, err)
+			continue
+		}
+		for _, match := range matches {
+			log.Tracef("delete %s", match)
+			err := os.RemoveAll(match)
+			if err != nil {
+				log.Warnf("RemoveAll %s: %s", match, err)
+			}
+		}
+	}
+
 	// build a tar archive of the bugger
 
 	tar_flags := "zcf"
@@ -328,4 +345,11 @@ func build_image(c *cli.Context) {
 		return
 	}
 
+	archive_info, err := os.Stat(archive_path)
+	if err != nil {
+		log.Error("failed to build archive:", archive_path, err)
+		return
+	}
+
+	fmt.Printf("created archive %s, %d bytes\n", archive_path, archive_info.Size())
 }

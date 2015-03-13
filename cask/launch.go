@@ -75,6 +75,8 @@ func launch(c *cli.Context) {
 			f.Close()
 			fmt.Println("downloaded", archive)
 		}
+	} else {
+		archivepath = archive
 	}
 
 	fmt.Println("launch", opts.name, "using", archivepath)

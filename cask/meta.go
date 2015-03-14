@@ -13,6 +13,9 @@ type Meta struct {
 	// holds configuration parameters such as lxc.*
 	Config map[string][]string `json:"config"`
 
+	// misc options
+	Options Options `json:"options"`
+
 	// arbtrary data to be stored with image
 	Data map[string]string `json:"data"`
 
@@ -26,4 +29,8 @@ type BuildParams struct {
 
 	// glob patterns of files to exclude in the saved image
 	Exclude []string `json:"exclude"`
+}
+type Options struct {
+	// setup host mount at /host when container launched
+	HostMount bool `json:"host_mount"`
 }

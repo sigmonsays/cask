@@ -211,6 +211,15 @@ func launch(c *cli.Context) {
 		return
 	}
 
+	// Process any options
+	host_mount := "/host"
+	if meta.Options.HostMount {
+		if FileExists(host_mount) == false {
+			os.MkdirAll(host_mount, 0755)
+		}
+		container.SetConfigItem("lxc.mount.entry", "/host /host non rw,bind 0 0")
+	}
+
 	// start the container
 	err = container.Start()
 	if err != nil {

@@ -26,6 +26,10 @@ type Meta struct {
 
 	// network configuration
 	Network NetworkConfig `json:"network"`
+
+	// set capabilities
+	CapAdd  []string `json:"cap_add"`
+	CapDrop []string `json:"cap_drop"`
 }
 
 type BuildParams struct {
@@ -43,5 +47,5 @@ type Options struct {
 }
 
 type NetworkConfig struct {
-	//
+	//TODO
 }

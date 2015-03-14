@@ -15,3 +15,12 @@ func NewConfigBuilder(c *lxc.Container) *ConfigBuilder {
 		Network: NewNetworkBuilder(c),
 	}
 }
+
+func (b *ConfigBuilder) DropCap(cap string) *ConfigBuilder {
+	b.c.SetConfigItem("lxc.cap.drop", cap)
+	return b
+}
+func (b *ConfigBuilder) KeepCap(cap string) *ConfigBuilder {
+	b.c.SetConfigItem("lxc.cap.keep", cap)
+	return b
+}

@@ -9,7 +9,9 @@ import (
 )
 
 func WarnIf(err error) {
-	log.Warnf("%s", err)
+	if err != nil {
+		log.Warnf("%s", err)
+	}
 }
 
 func main() {

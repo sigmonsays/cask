@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/builder"
+	"github.com/sigmonsays/cask/builder/cap"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -275,6 +276,26 @@ func launch(c *cli.Context) {
 			os.MkdirAll(path, 0755)
 		}
 		container.SetConfigItem("lxc.mount.entry", fmt.Sprintf("/host %s none bind 0 0", path))
+	}
+
+	// always drop these
+	//		"sys_module", "mac_admin", "mac_override", "sys_time",
+	default_drop := []string{
+		cap.CAP_SYS_MODULE,
+		cap.CAP_MAC_ADMIN,
+		cap.CAP_MAC_OVERRIDE,
+		cap.CAP_SYS_TIME,
+	}
+	for _, d := range default_drop {
+		container.SetConfigItem("lxc.cap.drop", d)
+	}
+
+	// add/drop capabilities
+	for _, cap_add := range meta.CapAdd {
+		container.SetConfigItem("lxc.cap.add", cap_add)
+	}
+	for _, cap_drop := range meta.CapDrop {
+		container.SetConfigItem("lxc.cap.drop", cap_drop)
 	}
 
 	// start the container

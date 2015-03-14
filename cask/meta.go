@@ -1,5 +1,7 @@
 package main
 
+// describe the metadata associated with an image and a container
+// when its launched
 type Meta struct {
 	// name of the image
 	Name string `json:"name"`
@@ -21,7 +23,11 @@ type Meta struct {
 
 	// build paramters for building the image
 	Build BuildParams `json:"build"`
+
+	// network configuration
+	Network NetworkConfig `json:"network"`
 }
+
 type BuildParams struct {
 
 	// other images to include in this build
@@ -30,7 +36,12 @@ type BuildParams struct {
 	// glob patterns of files to exclude in the saved image
 	Exclude []string `json:"exclude"`
 }
+
 type Options struct {
 	// setup host mount at /host when container launched
 	HostMount bool `json:"host_mount"`
+}
+
+type NetworkConfig struct {
+	//
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/builder"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -108,6 +109,8 @@ func launch(c *cli.Context) {
 		return
 	}
 
+	build := builder.NewConfigBuilder(container)
+
 	if container.Defined() {
 		log.Info("destroying existing container", opts.name)
 		err := container.Stop()
@@ -188,10 +191,10 @@ func launch(c *cli.Context) {
 	container.SetConfigItem("lxc.mount", mountpath)
 
 	log.Debug("config network")
-	container.SetConfigItem("lxc.network.type", "veth")
-	container.SetConfigItem("lxc.network.link", "lxcbr0")
-	container.SetConfigItem("lxc.network.flags", "up")
-	container.SetConfigItem("lxc.network.hwaddr", "00:16:3e:xx:xx:xx")
+	veth := builder.DefaultVethType()
+	veth.Name = "eth0"
+	veth.Link = "lxcbr0"
+	build.Network.AddInterface(veth)
 
 	if container.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")

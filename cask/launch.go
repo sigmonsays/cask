@@ -89,6 +89,10 @@ func launch(c *cli.Context) {
 	hostnamepath := filepath.Join(rootfspath, "etc/hostname")
 	mountpath := filepath.Join(containerpath, "fstab")
 
+	container_path := func(subpath string) string {
+		return filepath.Join(rootfspath, subpath[1:])
+	}
+
 	log.Debug("containerpath", containerpath)
 	log.Debug("metadata path", metadatapath)
 	log.Debug("rootfs path", rootfspath)
@@ -133,6 +137,7 @@ func launch(c *cli.Context) {
 		return
 	}
 
+	log.Debugf("meta %+v", meta)
 	log.Debug("runtime", meta.Runtime)
 
 	lxcruntimepath := filepath.Join(opts.lxcpath, meta.Runtime)
@@ -214,10 +219,15 @@ func launch(c *cli.Context) {
 	// Process any options
 	host_mount := "/host"
 	if meta.Options.HostMount {
+		log.Debug("adding host mount", host_mount)
 		if FileExists(host_mount) == false {
 			os.MkdirAll(host_mount, 0755)
 		}
-		container.SetConfigItem("lxc.mount.entry", "/host /host non rw,bind 0 0")
+		path := container_path(host_mount)
+		if FileExists(path) == false {
+			os.MkdirAll(path, 0755)
+		}
+		container.SetConfigItem("lxc.mount.entry", fmt.Sprintf("/host %s none bind 0 0", path))
 	}
 
 	// start the container

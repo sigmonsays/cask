@@ -30,6 +30,8 @@ type Meta struct {
 	// set capabilities
 	CapAdd  []string `json:"cap_add"`
 	CapDrop []string `json:"cap_drop"`
+
+	Mount []MountConfig `json:"mount"`
 }
 
 type BuildParams struct {
@@ -48,4 +50,8 @@ type Options struct {
 
 type NetworkConfig struct {
 	//TODO
+}
+
+type MountConfig struct {
+	BindMount []string `json:"bind_mount"`
 }

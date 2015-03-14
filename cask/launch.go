@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/builder"
-	"github.com/sigmonsays/cask/builder/cap"
+	"github.com/sigmonsays/cask/builder/caps"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -109,6 +109,7 @@ func launch(c *cli.Context) {
 	log.Info("launch", opts.name, "using", archivepath)
 
 	containerpath := filepath.Join(opts.lxcpath, opts.name)
+	logfile := filepath.Join(opts.lxcpath, opts.name) + ".log"
 	caskpath := filepath.Join(containerpath, "cask")
 	configpath := filepath.Join(containerpath, "config")
 	metadatapath := filepath.Join(containerpath, "meta.json")
@@ -184,6 +185,10 @@ func launch(c *cli.Context) {
 
 	container.ClearConfig()
 
+	// begin container configuration
+	build.SetConfigItem("lxc.loglevel", builder.LogTrace)
+	build.SetConfigItem("lxc.logfile", logfile)
+
 	os.MkdirAll(filepath.Dir(mountpath), 0755)
 
 	fstab, err := os.Create(mountpath)
@@ -223,6 +228,10 @@ func launch(c *cli.Context) {
 		container.RunCommand(cmd, attach_options)
 		return nil
 	})
+
+	// provision CPU shares and CPU sets
+	build.Cgroup.CpuSet.Cpus("1")
+	build.Cgroup.Cpu.Shares("100")
 
 	// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!
 	err = os.MkdirAll(container_path("/etc/network"), 0755)
@@ -275,7 +284,7 @@ func launch(c *cli.Context) {
 		if FileExists(path) == false {
 			os.MkdirAll(path, 0755)
 		}
-		container.SetConfigItem("lxc.mount.entry", fmt.Sprintf("/host %s none bind 0 0", path))
+		build.Mount.Bind(host_mount, path)
 	}
 
 	// always drop these

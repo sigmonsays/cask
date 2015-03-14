@@ -30,6 +30,28 @@ type LaunchOptions struct {
 	name string
 }
 
+type LaunchFunc func() error
+
+type LaunchFunctions struct {
+	list []LaunchFunc
+}
+
+func NewLaunchFunctions() *LaunchFunctions {
+	return &LaunchFunctions{
+		list: make([]LaunchFunc, 0),
+	}
+}
+func (l *LaunchFunctions) Add(f LaunchFunc) {
+	l.list = append(l.list, f)
+}
+func (l *LaunchFunctions) Execute() error {
+	var err error
+	for _, f := range l.list {
+		err = f()
+	}
+	return err
+}
+
 func launch(c *cli.Context) {
 
 	opts := &LaunchOptions{
@@ -46,6 +68,9 @@ func launch(c *cli.Context) {
 		log.Error("Need archive path")
 		return
 	}
+
+	// used to execute commands after the container has started
+	post_launch := NewLaunchFunctions()
 
 	archive := c.Args().First()
 	var archivepath string
@@ -191,10 +216,29 @@ func launch(c *cli.Context) {
 	container.SetConfigItem("lxc.mount", mountpath)
 
 	log.Debug("config network")
+	post_launch.Add(func() error {
+		attach_options := lxc.DefaultAttachOptions
+		cmd := []string{"ifconfig"}
+		container.RunCommand(cmd, attach_options)
+		return nil
+	})
+
+	// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!
+	err = os.MkdirAll(container_path("/etc/network"), 0755)
+	WarnIf(err)
+	err = ioutil.WriteFile(container_path("/etc/network/interfaces"), []byte("auto lo\niface lo inet loopback"), 0744)
+	WarnIf(err)
+
 	veth := builder.DefaultVethType()
 	veth.Name = "eth0"
 	veth.Link = "lxcbr0"
-	build.Network.AddInterface(veth)
+	NetworkConfig := &builder.NetworkConfig{
+		IPv4: builder.IPv4Config{
+			IP:      "192.168.7.55/24",
+			Gateway: "192.168.7.1",
+		},
+	}
+	build.Network.AddInterface(veth).WithNetworkConfig(NetworkConfig)
 
 	if container.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")
@@ -276,6 +320,14 @@ func launch(c *cli.Context) {
 		}
 
 	}
+
+	// post launch scripts
+	err = post_launch.Execute()
+	if err != nil {
+		log.Error("post launch error", err)
+		return
+	}
+
 	// if we want to remove the /cask path from the container...
 	// os.RemoveAll(filepath.Join(rootfspath, "cask"))
 

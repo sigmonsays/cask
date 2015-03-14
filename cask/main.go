@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func WarnIf(err error) {
+	log.Warnf("%s", err)
+}
+
 func main() {
 
 	CheckPrerequisites()

@@ -16,6 +16,9 @@ type ListOptions struct {
 
 	// name of the container
 	name string
+
+	// show all containers (ie, include stopped)
+	all bool
 }
 
 func list(c *cli.Context) {
@@ -24,6 +27,7 @@ func list(c *cli.Context) {
 		CommonOptions: GetCommonOptions(c),
 		name:          c.String("name"),
 		runtime:       c.String("runtime"),
+		all:           c.Bool("all"),
 	}
 
 	runtimepath := filepath.Join(opts.lxcpath, opts.runtime)
@@ -37,6 +41,9 @@ func list(c *cli.Context) {
 
 	containers := lxc.Containers(opts.lxcpath)
 	for _, container := range containers {
+		if opts.all == false && container.Running() == false {
+			continue
+		}
 		ipv4addrs, _ := container.IPv4Addresses()
 		var ip string
 		if len(ipv4addrs) > 0 {

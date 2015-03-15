@@ -145,6 +145,9 @@ func main_cask() {
 					Name:  "runtime",
 					Value: "",
 				},
+				cli.BoolFlag{
+					Name: "all, a",
+				},
 			},
 			Action: func(c *cli.Context) {
 				list(c)

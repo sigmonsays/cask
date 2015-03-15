@@ -242,6 +242,22 @@ func build_image(c *cli.Context) {
 		return
 	}
 
+	// copy the cask binary in the container
+	cask_bin := os.Args[0]
+	os.MkdirAll(container_path("/sbin"), 0755)
+	err = CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
+	if err != nil {
+		log.Error("ERROR copy:", err)
+		return
+	}
+	// TODO: dont hard code
+	lxc_init := "/usr/sbin/init.lxc.static"
+	err = CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
+	if err != nil {
+		log.Error("ERROR copy:", err)
+		return
+	}
+
 	// start the container
 	err = clone.Start()
 	if err != nil {
@@ -249,6 +265,7 @@ func build_image(c *cli.Context) {
 		return
 	}
 
+	log.Tracef("Waiting for RUNNING state..")
 	clone.Wait(lxc.RUNNING, opts.waitTimeout)
 
 	if opts.waitMask >= WaitMaskNetwork {

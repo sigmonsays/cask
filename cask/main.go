@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/sup"
 	gologging "github.com/sigmonsays/go-logging"
 	"gopkg.in/lxc/go-lxc.v2"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -15,6 +18,23 @@ func WarnIf(err error) {
 }
 
 func main() {
+	// different behavior based on our invoked name
+	name := filepath.Base(os.Args[0])
+	if name == "cask" {
+		main_cask()
+	} else if name == "cask-init" {
+		main_init()
+	} else {
+		fmt.Println("Unknown invoked name %s", name)
+		os.Exit(1)
+	}
+}
+
+func main_init() {
+	sup.Main()
+}
+
+func main_cask() {
 
 	CheckPrerequisites()
 
@@ -87,6 +107,9 @@ func main() {
 				},
 				cli.BoolFlag{
 					Name: "nocache",
+				},
+				cli.BoolFlag{
+					Name: "foreground, f",
 				},
 			},
 			Action: func(c *cli.Context) {

@@ -14,8 +14,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 type LaunchOptions struct {
@@ -29,6 +31,9 @@ type LaunchOptions struct {
 
 	// name of the container
 	name string
+
+	// keep application in foreground
+	foreground bool
 }
 
 type LaunchFunc func() error
@@ -60,6 +65,7 @@ func launch(c *cli.Context) {
 		name:          c.String("name"),
 		nocache:       c.Bool("nocache"),
 		runtime:       c.String("runtime"),
+		foreground:    c.Bool("foreground"),
 	}
 
 	if opts.name == "" {
@@ -184,6 +190,10 @@ func launch(c *cli.Context) {
 	log.Debug("runtime path", runtimepath)
 
 	container.ClearConfig()
+
+	if opts.verbose {
+		container.SetVerbosity(lxc.Verbose)
+	}
 
 	// begin container configuration
 	build.SetConfigItem("lxc.loglevel", builder.LogTrace)
@@ -326,6 +336,44 @@ func launch(c *cli.Context) {
 		container.SetConfigItem("lxc.cap.drop", cap_drop)
 	}
 
+	// cmdline is what we execute
+	var cmdline []string
+	if len(c.Args()) > 1 {
+		cmdline = c.Args()[1:]
+		log.Tracef("using command from cli %s", cmdline)
+	} else if len(meta.DefaultCmd) > 0 {
+		cmdline = strings.Split(meta.DefaultCmd, " ")
+		log.Tracef("using command from meta.default_cmd %s", meta.DefaultCmd)
+	}
+
+	if opts.foreground {
+		if len(cmdline) == 0 {
+			log.Errorf("cmdline must be given with foreground option")
+			return
+		}
+		// TODO: Figure out how to do this without using lxc-execute ...
+		args := []string{"--name", container.Name(),
+			"--lxcpath", filepath.Join(container.ConfigPath(), container.Name()),
+			"--"}
+		args = append(args, cmdline...)
+		cmd := exec.Command("lxc-execute", args...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			exit_code := 1
+			if xerr, ok := err.(*exec.ExitError); ok {
+				if status, ok := xerr.Sys().(syscall.WaitStatus); ok {
+					exit_code = status.ExitStatus()
+				}
+			}
+			os.Exit(exit_code)
+			return
+		}
+		return
+	}
+
 	// start the container
 	err = container.Start()
 	if err != nil {
@@ -335,7 +383,35 @@ func launch(c *cli.Context) {
 
 	// wait for container to start up....
 	if opts.waitMask >= WaitMaskStart {
+		log.Tracef("Waiting for container state RUNNING")
 		container.Wait(lxc.RUNNING, opts.waitTimeout)
+	}
+
+	if opts.foreground {
+		// container.WantDaemonize(false)
+		attach_options := lxc.DefaultAttachOptions
+		attach_options.StdinFd = os.Stdin.Fd()
+		attach_options.StdoutFd = os.Stdout.Fd()
+		attach_options.StderrFd = os.Stderr.Fd()
+		attach_options.ClearEnv = false
+
+		err = container.AttachShell(attach_options)
+		if err != nil {
+			log.Error("AttachShell", opts.name, err)
+			return
+		}
+
+		/*
+			status, err := container.RunCommandStatus(cmdline, attach_options)
+			if err != nil {
+				log.Error("RunCommandStatus", opts.name, err)
+				return
+			}
+
+			log.Infof("containter %s exiting... %s exited %d", opts.name, cmdline, status)
+			os.Exit(status)
+		*/
+		return
 	}
 
 	var ip string

@@ -6,6 +6,9 @@ type Meta struct {
 	// name of the image
 	Name string `json:"name"`
 
+	// Default command to execute (optional)
+	DefaultCmd string `json:"default_cmd,omitempty"`
+
 	// version of the image
 	Version string `json:"version"`
 

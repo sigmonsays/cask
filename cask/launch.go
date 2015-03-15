@@ -146,9 +146,12 @@ func launch(c *cli.Context) {
 
 	if container.Defined() {
 		log.Info("destroying existing container", opts.name)
-		err := container.Stop()
-		if err != nil {
-			log.Warn("Stop", opts.name, err)
+
+		if container.Running() {
+			err := container.Stop()
+			if err != nil {
+				log.Warn("Stop", opts.name, err)
+			}
 		}
 		container.Destroy()
 	}
@@ -281,6 +284,8 @@ func launch(c *cli.Context) {
 	os.MkdirAll(rootfspath, 0755)
 	os.MkdirAll(filepath.Join(rootfspath, "/etc"), 0755)
 	ioutil.WriteFile(hostnamepath, []byte(opts.name), 0444)
+	// hack alert...
+	ioutil.WriteFile(filepath.Join(rootfspath, "/etc/mtab"), []byte{}, 0444)
 
 	log.Info("configured", opts.lxcpath, opts.name)
 
@@ -328,6 +333,10 @@ func launch(c *cli.Context) {
 		container.SetConfigItem("lxc.cap.drop", d)
 	}
 
+	// some standard mounts
+	// build.SetConfigItem("lxc.mount.auto", "proc:mixed")
+	// build.SetConfigItem("lxc.mount.auto", "sys:rw")
+
 	// add/drop capabilities
 	for _, cap_add := range meta.CapAdd {
 		container.SetConfigItem("lxc.cap.add", cap_add)
@@ -336,26 +345,38 @@ func launch(c *cli.Context) {
 		container.SetConfigItem("lxc.cap.drop", cap_drop)
 	}
 
-	// cmdline is what we execute
-	var cmdline []string
-	if len(c.Args()) > 1 {
-		cmdline = c.Args()[1:]
-		log.Tracef("using command from cli %s", cmdline)
-	} else if len(meta.DefaultCmd) > 0 {
-		cmdline = strings.Split(meta.DefaultCmd, " ")
-		log.Tracef("using command from meta.default_cmd %s", meta.DefaultCmd)
+	// save the configuration
+	err = container.SaveConfigFile(configpath)
+	if err != nil {
+		log.Error("SaveConfigFile", configpath, err)
+		return
 	}
 
 	if opts.foreground {
+		// cmdline is what we execute
+		var cmdline []string
+		if len(c.Args()) > 1 {
+			cmdline = c.Args()[1:]
+			log.Tracef("using command from cli %s", cmdline)
+		} else if len(meta.DefaultCmd) > 0 {
+			cmdline = strings.Split(meta.DefaultCmd, " ")
+			log.Tracef("using command from meta.default_cmd %s", meta.DefaultCmd)
+		}
 		if len(cmdline) == 0 {
 			log.Errorf("cmdline must be given with foreground option")
 			return
 		}
 		// TODO: Figure out how to do this without using lxc-execute ...
-		args := []string{"--name", container.Name(),
+		args := []string{
+			"--rcfile", configpath,
+			"--name", container.Name(),
 			"--lxcpath", filepath.Join(container.ConfigPath(), container.Name()),
-			"--"}
+			"--logpriority", "DEBUG",
+			"--logfile", logfile,
+			"--",
+		}
 		args = append(args, cmdline...)
+		log.Tracef("exec Command %s", args)
 		cmd := exec.Command("lxc-execute", args...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
@@ -371,7 +392,7 @@ func launch(c *cli.Context) {
 			os.Exit(exit_code)
 			return
 		}
-		return
+		os.Exit(0)
 	}
 
 	// start the container
@@ -385,33 +406,6 @@ func launch(c *cli.Context) {
 	if opts.waitMask >= WaitMaskStart {
 		log.Tracef("Waiting for container state RUNNING")
 		container.Wait(lxc.RUNNING, opts.waitTimeout)
-	}
-
-	if opts.foreground {
-		// container.WantDaemonize(false)
-		attach_options := lxc.DefaultAttachOptions
-		attach_options.StdinFd = os.Stdin.Fd()
-		attach_options.StdoutFd = os.Stdout.Fd()
-		attach_options.StderrFd = os.Stderr.Fd()
-		attach_options.ClearEnv = false
-
-		err = container.AttachShell(attach_options)
-		if err != nil {
-			log.Error("AttachShell", opts.name, err)
-			return
-		}
-
-		/*
-			status, err := container.RunCommandStatus(cmdline, attach_options)
-			if err != nil {
-				log.Error("RunCommandStatus", opts.name, err)
-				return
-			}
-
-			log.Infof("containter %s exiting... %s exited %d", opts.name, cmdline, status)
-			os.Exit(status)
-		*/
-		return
 	}
 
 	var ip string

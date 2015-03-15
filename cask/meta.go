@@ -31,7 +31,11 @@ type Meta struct {
 	CapAdd  []string `json:"cap_add"`
 	CapDrop []string `json:"cap_drop"`
 
-	Mount []MountConfig `json:"mount"`
+	// specific mount configuration
+	Mount MountConfig `json:"mount"`
+
+	// cgroup configuration
+	Cgroup CgroupConfig `json:"cgroup"`
 }
 
 type BuildParams struct {
@@ -49,9 +53,20 @@ type Options struct {
 }
 
 type NetworkConfig struct {
-	//TODO
 }
 
 type MountConfig struct {
 	BindMount []string `json:"bind_mount"`
+}
+
+type CgroupConfig struct {
+	Cpu CpuConfig `json:"cpu"`
+}
+
+type CpuConfig struct {
+	// how many shares the CPU can use
+	Shares string `json:"shares"`
+
+	// tie a specific process to given CPUs
+	CPU string `json:"cpu"`
 }

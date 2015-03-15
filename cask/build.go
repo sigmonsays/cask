@@ -70,7 +70,8 @@ func build_image(c *cli.Context) {
 	meta := &Meta{}
 	err = json.Unmarshal(meta_blob, meta)
 	if err != nil {
-		log.Error("ERROR meta.json:", err)
+		log.Tracef("meta.json content %s", meta_blob)
+		log.Error("meta.json:", err)
 		return
 	}
 	log.Tracef("meta %+v", meta)

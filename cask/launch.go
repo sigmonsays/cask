@@ -167,7 +167,7 @@ func launch(c *cli.Context) {
 		return
 	}
 
-	log.Debugf("meta %+v", meta)
+	log.Tracef("meta %+v", meta)
 	log.Debug("runtime", meta.Runtime)
 
 	lxcruntimepath := filepath.Join(opts.lxcpath, meta.Runtime)
@@ -230,25 +230,33 @@ func launch(c *cli.Context) {
 	})
 
 	// provision CPU shares and CPU sets
-	build.Cgroup.CpuSet.Cpus("1")
-	build.Cgroup.Cpu.Shares("100")
-
-	// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!
-	err = os.MkdirAll(container_path("/etc/network"), 0755)
-	WarnIf(err)
-	err = ioutil.WriteFile(container_path("/etc/network/interfaces"), []byte("auto lo\niface lo inet loopback"), 0744)
-	WarnIf(err)
+	log.Debugf("configure cgroups..")
+	if len(meta.Cgroup.Cpu.CPU) > 0 {
+		build.Cgroup.CpuSet.CPUs(meta.Cgroup.Cpu.CPU)
+	}
+	if len(meta.Cgroup.Cpu.Shares) > 0 {
+		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
+	}
 
 	veth := builder.DefaultVethType()
 	veth.Name = "eth0"
 	veth.Link = "lxcbr0"
-	NetworkConfig := &builder.NetworkConfig{
-		IPv4: builder.IPv4Config{
-			IP:      "192.168.7.55/24",
-			Gateway: "192.168.7.1",
-		},
-	}
-	build.Network.AddInterface(veth).WithNetworkConfig(NetworkConfig)
+	build.Network.AddInterface(veth)
+	/*
+		// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!
+		err = os.MkdirAll(container_path("/etc/network"), 0755)
+		WarnIf(err)
+		err = ioutil.WriteFile(container_path("/etc/network/interfaces"), []byte("auto lo\niface lo inet loopback"), 0744)
+		WarnIf(err)
+		TODO: static IP example..
+		NetworkConfig := &builder.NetworkConfig{
+			IPv4: builder.IPv4Config{
+				IP:      "192.168.7.55/24",
+				Gateway: "192.168.7.1",
+			},
+		}
+		build.Network.AddInterface(veth).WithNetworkConfig(NetworkConfig)
+	*/
 
 	if container.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")
@@ -285,6 +293,17 @@ func launch(c *cli.Context) {
 			os.MkdirAll(path, 0755)
 		}
 		build.Mount.Bind(host_mount, path)
+	}
+	for _, bind_mount := range meta.Mount.BindMount {
+		log.Debug("adding bind mount", bind_mount)
+		if FileExists(bind_mount) == false {
+			os.MkdirAll(bind_mount, 0755)
+		}
+		path := container_path(bind_mount)
+		if FileExists(path) == false {
+			os.MkdirAll(path, 0755)
+		}
+		build.Mount.Bind(bind_mount, path)
 	}
 
 	// always drop these

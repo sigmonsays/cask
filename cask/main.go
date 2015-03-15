@@ -200,6 +200,19 @@ func main_cask() {
 				info(c)
 			},
 		},
+		{
+			Name:  "attach",
+			Usage: "atach to running container",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				attach(c)
+			},
+		},
 	}
 	app.Run(os.Args)
 }

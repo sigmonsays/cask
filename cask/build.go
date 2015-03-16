@@ -63,7 +63,7 @@ func build_image(c *cli.Context) {
 	meta_path := filepath.Join(opts.caskpath, "meta.json")
 	meta_blob, err := ioutil.ReadFile(meta_path)
 	if err != nil {
-		log.Errorf("ERROR meta.json: %s", err)
+		log.Errorf("meta.json: %s", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func build_image(c *cli.Context) {
 
 	runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR creating runtime:", err)
+		log.Error("creating runtime:", err)
 		return
 	}
 
@@ -102,14 +102,14 @@ func build_image(c *cli.Context) {
 	}
 	err = runtime.Clone(container, clone_options)
 	if err != nil {
-		log.Error("ERROR clone:", err)
+		log.Error("clone:", err)
 		return
 	}
 
 	// get the clone
 	clone, err := lxc.NewContainer(container, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR clone NewContainer:", err)
+		log.Error("clone NewContainer:", err)
 		return
 	}
 
@@ -121,7 +121,7 @@ func build_image(c *cli.Context) {
 
 	rootfs_values := clone.ConfigItem("lxc.rootfs")
 	if len(rootfs_values) == 0 {
-		log.Error("ERROR cloned container:", container, "has no rootfs")
+		log.Error("cloned container:", container, "has no rootfs")
 		return
 	}
 	rootfs_tmp := strings.Split(rootfs_values[0], ":")
@@ -155,7 +155,7 @@ func build_image(c *cli.Context) {
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
 	if err != nil {
-		log.Error("ERROR CopyTree", opts.caskpath, "to", cask_path, err)
+		log.Error("CopyTree", opts.caskpath, "to", cask_path, err)
 		return
 	}
 
@@ -171,7 +171,7 @@ func build_image(c *cli.Context) {
 
 	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))
 	if err != nil {
-		log.Error("ERROR Create", err)
+		log.Error("Create", err)
 		return
 	}
 	keys := runtime.ConfigKeys()
@@ -229,16 +229,16 @@ func build_image(c *cli.Context) {
 		} else if info.Mode().IsRegular() {
 			err = shutil.CopyFile(path, newpath, false)
 			if err != nil {
-				log.Error("ERROR copy file", newpath, err)
+				log.Error("copy file", newpath, err)
 			}
 		} else {
-			log.Error("WARNING: skipping", path)
+			log.Warn("skipping", path)
 		}
 		return nil
 	}
 	err = filepath.Walk(cask_rootfs, walkfn)
 	if err != nil {
-		log.Error("ERROR walk:", err)
+		log.Error("walk:", err)
 		return
 	}
 
@@ -247,21 +247,21 @@ func build_image(c *cli.Context) {
 	os.MkdirAll(container_path("/sbin"), 0755)
 	err = CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
 	if err != nil {
-		log.Error("ERROR copy:", err)
+		log.Error("copy:", err)
 		return
 	}
 	// TODO: dont hard code
 	lxc_init := "/usr/sbin/init.lxc.static"
 	err = CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
 	if err != nil {
-		log.Error("ERROR copy:", err)
+		log.Error("copy:", err)
 		return
 	}
 
 	// start the container
 	err = clone.Start()
 	if err != nil {
-		log.Error("ERROR starting cloned container:", err)
+		log.Error("starting cloned container:", err)
 		return
 	}
 
@@ -286,12 +286,12 @@ func build_image(c *cli.Context) {
 	cmd := []string{"sh", "-c", "/cask/bootstrap"}
 	exit_code, err := clone.RunCommandStatus(cmd, attach_options)
 	if err != nil {
-		log.Error("ERROR RunCommand", cmd, err)
+		log.Error("RunCommand", cmd, err)
 		return
 	}
 
 	if exit_code != 0 {
-		log.Error("ERROR bad exit code:", exit_code)
+		log.Error("bad exit code:", exit_code)
 		return
 	}
 
@@ -300,7 +300,7 @@ func build_image(c *cli.Context) {
 
 	err = clone.Stop()
 	if err != nil {
-		log.Error("ERROR stop", err)
+		log.Error("stop", err)
 	}
 	log.Info("stopped container with runtime delta at", delta_path)
 
@@ -312,7 +312,7 @@ func build_image(c *cli.Context) {
 
 	new_meta_blob, err := json.MarshalIndent(meta, "", "   ")
 	if err != nil {
-		log.Error("ERROR marshal", err)
+		log.Error("marshal", err)
 		return
 	}
 
@@ -377,7 +377,7 @@ func build_image(c *cli.Context) {
 	tar_cmd.Stderr = os.Stderr
 	err = tar_cmd.Run()
 	if err != nil {
-		log.Error("ERROR tar", err)
+		log.Error("tar", err)
 		return
 	}
 

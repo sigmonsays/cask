@@ -19,9 +19,14 @@ func start(c *cli.Context) {
 		name:          c.String("name"),
 	}
 
+	if opts.name == "" {
+		log.Error("container name required")
+		return
+	}
+
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR getting container", opts.name, err)
+		log.Error("getting container", opts.name, err)
 		return
 	}
 
@@ -29,7 +34,7 @@ func start(c *cli.Context) {
 
 	err = container.Start()
 	if err != nil {
-		log.Error("ERROR starting container", opts.name, err)
+		log.Error("starting container", opts.name, err)
 		return
 	}
 }

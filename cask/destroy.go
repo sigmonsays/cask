@@ -21,7 +21,7 @@ func destroy(c *cli.Context) {
 
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR getting container", opts.name, err)
+		log.Error("getting container", opts.name, err)
 		return
 	}
 
@@ -33,7 +33,7 @@ func destroy(c *cli.Context) {
 
 	err = container.Destroy()
 	if err != nil {
-		log.Error("ERROR stopping container", opts.name, err)
+		log.Error("stopping container", opts.name, err)
 		return
 	}
 }

@@ -26,7 +26,7 @@ func config(c *cli.Context) {
 
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		fmt.Println("ERROR getting container", err)
+		log.Error("getting container", err)
 		return
 	}
 	keys := container.ConfigKeys()
@@ -44,7 +44,7 @@ func config(c *cli.Context) {
 	if opts.verbose {
 		runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
 		if err != nil {
-			fmt.Println("ERROR getting runtime container", err)
+			log.Error("getting runtime container", err)
 			return
 		}
 		keys := runtime.ConfigKeys()

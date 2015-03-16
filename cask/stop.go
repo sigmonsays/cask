@@ -19,16 +19,21 @@ func stop(c *cli.Context) {
 		name:          c.String("name"),
 	}
 
+	if opts.name == "" {
+		log.Error("container name required")
+		return
+	}
+
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR getting container", opts.name, err)
+		log.Error("getting container", opts.name, err)
 		return
 	}
 
 	log.Info(opts.name, "is", container.State())
 	err = container.Stop()
 	if err != nil {
-		log.Error("ERROR stopping container", err)
+		log.Error("stopping container", err)
 		return
 	}
 }

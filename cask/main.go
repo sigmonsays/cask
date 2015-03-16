@@ -134,8 +134,9 @@ func main_cask() {
 			},
 		},
 		{
-			Name:  "list",
-			Usage: "list containers",
+			Name:      "list",
+			ShortName: "ls",
+			Usage:     "list containers",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "name, n",

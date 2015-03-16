@@ -212,6 +212,26 @@ func main_cask() {
 					Name:  "name, n",
 					Value: "",
 				},
+				cli.StringFlag{
+					Name:  "namespaces",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "cwd",
+					Value: "",
+				},
+				cli.IntFlag{
+					Name: "uid",
+				},
+				cli.IntFlag{
+					Name: "gid",
+				},
+				cli.BoolFlag{
+					Name: "clear_env",
+				},
+				cli.StringFlag{
+					Name: "keep_env",
+				},
 			},
 			Action: func(c *cli.Context) {
 				attach(c)

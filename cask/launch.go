@@ -210,7 +210,6 @@ func launch(c *cli.Context) {
 		return
 	}
 
-	// TODO: Add any additional mounts here
 	fstab.Close()
 
 	// merge config in from meta
@@ -219,6 +218,10 @@ func launch(c *cli.Context) {
 
 		if key == "lxc.network" {
 			// work around for network configuration not being set properly
+			continue
+		}
+		if key == "lxc.cgroup" {
+			// work around for cgroup configuration not being set properly
 			continue
 		}
 
@@ -394,7 +397,7 @@ func launch(c *cli.Context) {
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
 		if err != nil {
-			exit_code := 1
+			exit_code := 255
 			if xerr, ok := err.(*exec.ExitError); ok {
 				if status, ok := xerr.Sys().(syscall.WaitStatus); ok {
 					exit_code = status.ExitStatus()

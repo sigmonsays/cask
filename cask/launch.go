@@ -223,16 +223,16 @@ func launch(c *cli.Context) {
 		}
 
 		for _, value := range values {
-			container.SetConfigItem(key, value)
+			build.SetConfigItem(key, value)
 		}
 	}
 
 	// specific configuration for this container
-	container.SetConfigItem("lxc.utsname", opts.name)
+	build.SetConfigItem("lxc.utsname", opts.name)
 
 	rootfs := fmt.Sprintf("aufs:%s:%s", runtimepath, rootfspath)
-	container.SetConfigItem("lxc.rootfs", rootfs)
-	container.SetConfigItem("lxc.mount", mountpath)
+	build.SetConfigItem("lxc.rootfs", rootfs)
+	build.SetConfigItem("lxc.mount", mountpath)
 
 	log.Debug("config network")
 	post_launch.Add(func() error {
@@ -330,19 +330,30 @@ func launch(c *cli.Context) {
 		cap.CAP_SYS_TIME,
 	}
 	for _, d := range default_drop {
-		container.SetConfigItem("lxc.cap.drop", d)
+		build.SetConfigItem("lxc.cap.drop", d)
 	}
 
 	// some standard mounts
 	// build.SetConfigItem("lxc.mount.auto", "proc:mixed")
 	// build.SetConfigItem("lxc.mount.auto", "sys:rw")
 
+	// set auto start configuration
+	if meta.AutoStart.Enable {
+		s := meta.AutoStart
+		build.SetConfigItem("lxc.start.auto", "1")
+		build.SetConfigItem("lxc.start.delay", fmt.Sprintf("%d", s.Delay))
+		build.SetConfigItem("lxc.start.order", fmt.Sprintf("%d", s.Order))
+		for _, g := range s.Groups {
+			build.SetConfigItem("lxc.start.group", g)
+		}
+	}
+
 	// add/drop capabilities
 	for _, cap_add := range meta.CapAdd {
-		container.SetConfigItem("lxc.cap.add", cap_add)
+		build.SetConfigItem("lxc.cap.add", cap_add)
 	}
 	for _, cap_drop := range meta.CapDrop {
-		container.SetConfigItem("lxc.cap.drop", cap_drop)
+		build.SetConfigItem("lxc.cap.drop", cap_drop)
 	}
 
 	// save the configuration

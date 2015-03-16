@@ -9,6 +9,9 @@ type Meta struct {
 	// Default command to execute (optional)
 	DefaultCmd string `json:"default_cmd,omitempty"`
 
+	// Auto start
+	AutoStart AutoStartConfig `json:"auto_start"`
+
 	// version of the image
 	Version string `json:"version"`
 
@@ -72,4 +75,18 @@ type CpuConfig struct {
 
 	// tie a specific process to given CPUs
 	CPU string `json:"cpu"`
+}
+
+type AutoStartConfig struct {
+	// enable autostart
+	Enable bool `json:"enable"`
+
+	// time to wait (seconds) after the container is started before starting the next
+	Delay int `json:"delay"`
+
+	// integer sorted to determine startup of containers
+	Order int `json:"order"`
+
+	// groups container belongs to
+	Groups []string `json:"groups"`
 }

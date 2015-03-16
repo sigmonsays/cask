@@ -21,7 +21,7 @@ func attach(c *cli.Context) {
 
 	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
 	if err != nil {
-		log.Error("ERROR getting container", opts.name, err)
+		log.Error("getting container", opts.name, err)
 		return
 	}
 
@@ -31,7 +31,7 @@ func attach(c *cli.Context) {
 
 	err = container.AttachShell(options)
 	if err != nil {
-		log.Error("ERROR Attaching container", opts.name, err)
+		log.Error("attaching container", opts.name, err)
 		return
 	}
 }

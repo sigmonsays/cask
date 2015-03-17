@@ -47,7 +47,7 @@ func main_cask() {
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "config",
+			Name:  "config, c",
 			Value: config.DefaultConfigPath(),
 		},
 		cli.StringFlag{

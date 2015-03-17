@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,7 @@ type ListOptions struct {
 	all bool
 }
 
-func list(c *cli.Context) {
+func cli_list(c *cli.Context, conf *config.Config) {
 
 	opts := &ListOptions{
 		CommonOptions: GetCommonOptions(c),

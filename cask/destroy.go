@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 )
 
@@ -12,7 +13,7 @@ type DestroyOptions struct {
 	name string
 }
 
-func destroy(c *cli.Context) {
+func cli_destroy(c *cli.Context, conf *config.Config) {
 
 	opts := &DestroyOptions{
 		CommonOptions: GetCommonOptions(c),

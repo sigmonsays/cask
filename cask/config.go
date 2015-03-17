@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 )
 
@@ -16,7 +17,7 @@ type ConfigOptions struct {
 	name string
 }
 
-func config(c *cli.Context) {
+func cli_config(c *cli.Context, conf *config.Config) {
 
 	opts := &ConfigOptions{
 		CommonOptions: GetCommonOptions(c),

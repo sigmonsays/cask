@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -39,14 +40,14 @@ func monitor() *exec.Cmd {
 	return cmd
 }
 
-func build(c *cli.Context) {
+func cli_build(c *cli.Context, conf *config.Config) {
 	cmd := monitor()
-	build_image(c)
+	build_image(c, conf)
 	cmd.Process.Signal(os.Interrupt)
 	cmd.Wait()
 }
 
-func build_image(c *cli.Context) {
+func build_image(c *cli.Context, conf *config.Config) {
 
 	opts := &BuildOptions{
 		CommonOptions:  GetCommonOptions(c),

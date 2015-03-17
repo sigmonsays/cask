@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 	"strings"
 	"syscall"
@@ -34,7 +35,7 @@ var namespace_names = map[string]int{
 	"uts":  syscall.CLONE_NEWUTS,
 }
 
-func attach(c *cli.Context) {
+func cli_attach(c *cli.Context, conf *config.Config) {
 
 	opts := &AttachOptions{
 		CommonOptions: GetCommonOptions(c),

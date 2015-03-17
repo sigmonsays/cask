@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	. "github.com/sigmonsays/cask/util"
 	"gopkg.in/lxc/go-lxc.v2"
 	"os"
@@ -24,7 +25,7 @@ type ImportOptions struct {
 	bootstrap string
 }
 
-func import_image(c *cli.Context) {
+func cli_import(c *cli.Context, conf *config.Config) {
 
 	opts := &ImportOptions{
 		CommonOptions: GetCommonOptions(c),

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/sup"
 	gologging "github.com/sigmonsays/go-logging"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -36,6 +37,8 @@ func main_init() {
 
 func main_cask() {
 
+	conf := config.DefaultConfig()
+
 	CheckPrerequisites()
 
 	app := cli.NewApp()
@@ -43,6 +46,10 @@ func main_cask() {
 	app.Usage = "manage container lifecycle"
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config",
+			Value: config.DefaultConfigPath(),
+		},
 		cli.StringFlag{
 			Name:  "lxcpath",
 			Value: lxc.DefaultConfigPath(),
@@ -70,6 +77,8 @@ func main_cask() {
 	}
 	app.Before = func(c *cli.Context) error {
 		gologging.SetLogLevel(c.String("level"))
+
+		conf.FromFile(c.String("config"))
 		return nil
 	}
 	app.Commands = []cli.Command{
@@ -90,7 +99,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				build(c)
+				cli_build(c, conf)
 			},
 		},
 		{
@@ -113,7 +122,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				launch(c)
+				cli_launch(c, conf)
 			},
 		},
 		{
@@ -130,7 +139,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				config(c)
+				cli_config(c, conf)
 			},
 		},
 		{
@@ -151,7 +160,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				list(c)
+				cli_list(c, conf)
 			},
 		},
 		{
@@ -168,7 +177,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				start(c)
+				cli_start(c, conf)
 			},
 		},
 		{
@@ -181,7 +190,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				stop(c)
+				cli_stop(c, conf)
 			},
 		},
 		{
@@ -194,14 +203,14 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				destroy(c)
+				cli_destroy(c, conf)
 			},
 		},
 		{
 			Name:  "info",
 			Usage: "show generic info",
 			Action: func(c *cli.Context) {
-				info(c)
+				cli_info(c, conf)
 			},
 		},
 		{
@@ -234,7 +243,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				attach(c)
+				cli_attach(c, conf)
 			},
 		},
 		{
@@ -251,7 +260,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				import_image(c)
+				cli_import(c, conf)
 			},
 		},
 	}

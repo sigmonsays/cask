@@ -6,6 +6,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/builder"
 	"github.com/sigmonsays/cask/builder/caps"
+	"github.com/sigmonsays/cask/config"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -58,7 +59,7 @@ func (l *LaunchFunctions) Execute() error {
 	return err
 }
 
-func launch(c *cli.Context) {
+func cli_launch(c *cli.Context, conf *config.Config) {
 
 	opts := &LaunchOptions{
 		CommonOptions: GetCommonOptions(c),

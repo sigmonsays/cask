@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 )
 
@@ -12,7 +13,7 @@ type StopOptions struct {
 	name string
 }
 
-func stop(c *cli.Context) {
+func cli_stop(c *cli.Context, conf *config.Config) {
 
 	opts := &StartOptions{
 		CommonOptions: GetCommonOptions(c),

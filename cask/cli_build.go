@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
+	"github.com/sigmonsays/cask/image"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -198,11 +199,11 @@ func build_image(c *cli.Context, conf *config.Config) {
 	fh.Close()
 
 	// extract any images from the build
-	for _, image := range meta.Build.Images {
-		log.Debugf("adding image %s to container", image)
-		image_archive, err := LocateImage(opts.lxcpath, image)
+	for _, img := range meta.Build.Images {
+		log.Debugf("adding image %s to container", img)
+		image_archive, err := image.LocateImage(opts.lxcpath, img)
 		if err != nil {
-			log.Errorf("Unable to locate image %s: %s", image, err)
+			log.Errorf("Unable to locate image %s: %s", img, err)
 			return
 		}
 

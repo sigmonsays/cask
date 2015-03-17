@@ -368,27 +368,9 @@ func build_image(c *cli.Context) {
 
 	// build a tar archive of the bugger
 
-	tar_flags := "zcf"
-	if opts.verbose {
-		tar_flags = "vzcf"
-	}
-
-	cmdline := []string{"tar", tar_flags, archive_path, meta.Name}
-
-	log.Debug("tar command", cmdline)
-	tar_cmd := exec.Command(cmdline[0], cmdline[1:]...)
-	tar_cmd.Dir = opts.lxcpath
-	tar_cmd.Stdout = os.Stdout
-	tar_cmd.Stderr = os.Stderr
-	err = tar_cmd.Run()
+	archive_info, err := TarImage(archive_path, containerpath, opts.verbose)
 	if err != nil {
-		log.Error("tar", err)
-		return
-	}
-
-	archive_info, err := os.Stat(archive_path)
-	if err != nil {
-		log.Error("failed to build archive:", archive_path, err)
+		log.Error("tar:", archive_path, err)
 		return
 	}
 

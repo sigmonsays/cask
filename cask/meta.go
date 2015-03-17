@@ -1,5 +1,10 @@
 package main
 
+import (
+	"encoding/json"
+	"io/ioutil"
+)
+
 // describe the metadata associated with an image and a container
 // when its launched
 type Meta struct {
@@ -42,6 +47,30 @@ type Meta struct {
 
 	// cgroup configuration
 	Cgroup CgroupConfig `json:"cgroup"`
+}
+
+func (m *Meta) SetConfigItem(key, value string) error {
+	if m.Config == nil {
+		m.Config = make(map[string][]string)
+	}
+	if _, ok := m.Config[key]; ok == false {
+		m.Config[key] = make([]string, 0)
+	}
+	m.Config[key] = append(m.Config[key], value)
+	return nil
+}
+
+func (m *Meta) WriteFile(path string) error {
+	buf, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, buf, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type BuildParams struct {

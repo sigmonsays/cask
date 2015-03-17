@@ -3,6 +3,7 @@ package util
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func UntarImage(archive, containerpath string, verbose bool) error {
@@ -23,4 +24,33 @@ func UntarImage(archive, containerpath string, verbose bool) error {
 		return nil
 	}
 	return err
+}
+
+func TarImage(archive, containerpath string, verbose bool) (os.FileInfo, error) {
+	tar_flags := "zcf"
+	if verbose {
+		tar_flags = "vzcf"
+	}
+
+	dirname := filepath.Dir(containerpath)
+	basename := filepath.Base(containerpath)
+
+	cmdline := []string{"tar", tar_flags, archive, basename}
+
+	log.Debug("tar command", cmdline)
+	tar_cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	tar_cmd.Dir = dirname
+	tar_cmd.Stdout = os.Stdout
+	tar_cmd.Stderr = os.Stderr
+	err := tar_cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	archive_info, err := os.Stat(archive)
+	if err != nil {
+		return nil, err
+	}
+
+	return archive_info, nil
 }

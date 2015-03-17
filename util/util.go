@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 func FileExists(path string) bool {
@@ -65,10 +66,31 @@ func MergeTree(src, dst string, strip int) error {
 		} else if info.Mode().IsRegular() {
 			err = CopyFile(path, newpath, int(info.Mode()))
 			if err != nil {
-				fmt.Println("ERROR copytree", newpath, err)
+				log.Error("copytree", newpath, err)
 			}
+		} else if info.Mode()&os.ModeDevice == os.ModeDevice {
+			st := info.Sys().(*syscall.Stat_t)
+			err = syscall.Mknod(newpath, st.Mode, int(st.Dev))
+			if err != nil {
+				log.Error("mknod", newpath, err)
+			}
+
+		} else if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			// TODO: NOTE that readlink is recursive; not exactly what we want here
+			// ie, if a -> b -> c and a and b are symlinks, then we resolve c and a no longer points to b
+			dst, err := os.Readlink(path)
+			if err != nil {
+				log.Error("readlink", path, err)
+				return nil
+			}
+			err = os.Symlink(dst, newpath)
+			if err != nil {
+				log.Error("symlink", err)
+				return nil
+			}
+
 		} else {
-			fmt.Println("WARNING: skipping", path)
+			log.Warn("skipping", path)
 		}
 		return nil
 	}

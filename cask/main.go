@@ -251,7 +251,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				attach(c)
+				import_image(c)
 			},
 		},
 	}

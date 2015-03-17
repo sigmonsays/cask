@@ -51,8 +51,7 @@ func main_cask() {
 			Value: config.DefaultConfigPath(),
 		},
 		cli.StringFlag{
-			Name:  "lxcpath",
-			Value: lxc.DefaultConfigPath(),
+			Name: "storage, s",
 		},
 		cli.BoolFlag{
 			Name: "verbose",
@@ -77,8 +76,14 @@ func main_cask() {
 	}
 	app.Before = func(c *cli.Context) error {
 		gologging.SetLogLevel(c.String("level"))
-
 		conf.FromFile(c.String("config"))
+		if c.GlobalIsSet("storagepath") {
+			conf.StoragePath = c.GlobalString("storagepath")
+
+		} else if conf.StoragePath == "" {
+			conf.StoragePath = lxc.DefaultConfigPath()
+		}
+
 		return nil
 	}
 	app.Commands = []cli.Command{

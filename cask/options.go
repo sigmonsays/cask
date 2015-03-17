@@ -6,7 +6,6 @@ import (
 )
 
 type CommonOptions struct {
-	lxcpath string
 	verbose bool
 
 	// time to wait for specific events
@@ -23,7 +22,6 @@ const (
 
 func GetCommonOptions(c *cli.Context) *CommonOptions {
 	opts := &CommonOptions{}
-	opts.lxcpath = c.GlobalString("lxcpath")
 	opts.verbose = c.GlobalBool("verbose")
 	opts.waitMask = c.GlobalInt("wait")
 	opts.waitTimeout = c.GlobalDuration("wait-timeout")

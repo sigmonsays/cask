@@ -65,14 +65,14 @@ func cli_import(c *cli.Context, conf *config.Config) {
 		}
 	}
 
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", opts.name, err)
 		return
 	}
 
 	// this is the new container
-	container2, err := lxc.NewContainer(opts.tmp_name, opts.lxcpath)
+	container2, err := lxc.NewContainer(opts.tmp_name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", opts.tmp_name, err)
 		return

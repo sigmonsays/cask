@@ -25,7 +25,7 @@ func cli_config(c *cli.Context, conf *config.Config) {
 		name:          c.String("name"),
 	}
 
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", err)
 		return
@@ -43,7 +43,7 @@ func cli_config(c *cli.Context, conf *config.Config) {
 	}
 
 	if opts.verbose {
-		runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
+		runtime, err := lxc.NewContainer(opts.runtime, conf.StoragePath)
 		if err != nil {
 			log.Error("getting runtime container", err)
 			return

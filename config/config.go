@@ -14,6 +14,7 @@ func DefaultConfigPath() string {
 }
 
 type Config struct {
+	// where to store everything on disk by default
 	StoragePath string
 }
 

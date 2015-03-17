@@ -25,7 +25,7 @@ func cli_stop(c *cli.Context, conf *config.Config) {
 		return
 	}
 
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", opts.name, err)
 		return

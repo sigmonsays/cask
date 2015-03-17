@@ -20,7 +20,7 @@ func cli_destroy(c *cli.Context, conf *config.Config) {
 		name:          c.String("name"),
 	}
 
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", opts.name, err)
 		return

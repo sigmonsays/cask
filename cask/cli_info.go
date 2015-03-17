@@ -19,4 +19,5 @@ func cli_info(c *cli.Context, conf *config.Config) {
 
 	fmt.Println("lxc version", lxc.Version())
 	fmt.Println("lxc default config path", lxc.DefaultConfigPath())
+	fmt.Println("storage path", conf.StoragePath)
 }

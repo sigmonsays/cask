@@ -58,7 +58,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 	}
 
 	log.Tracef("wait %v", opts.waitMask)
-	log.Info("lxcpath", opts.lxcpath)
+	log.Info("lxcpath", conf.StoragePath)
 	log.Info("cask build runtime", opts.runtime)
 	log.Info("cask path", opts.caskpath)
 
@@ -90,7 +90,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 		log.Error("Using detected runtime from metadata", opts.runtime)
 	}
 
-	runtime, err := lxc.NewContainer(opts.runtime, opts.lxcpath)
+	runtime, err := lxc.NewContainer(opts.runtime, conf.StoragePath)
 	if err != nil {
 		log.Error("creating runtime:", err)
 		return
@@ -109,7 +109,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 	}
 
 	// get the clone
-	clone, err := lxc.NewContainer(container, opts.lxcpath)
+	clone, err := lxc.NewContainer(container, conf.StoragePath)
 	if err != nil {
 		log.Error("clone NewContainer:", err)
 		return
@@ -142,7 +142,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 		cask_path = filepath.Join(delta_path, "cask")
 	}
 
-	containerpath := filepath.Join(opts.lxcpath, meta.Name)
+	containerpath := filepath.Join(conf.StoragePath, meta.Name)
 	rootfs_dir := filepath.Join(containerpath, "rootfs")
 	metadata_path := filepath.Join(containerpath, "meta.json")
 	archive_path := containerpath + ".tar.gz"
@@ -201,7 +201,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 	// extract any images from the build
 	for _, img := range meta.Build.Images {
 		log.Debugf("adding image %s to container", img)
-		image_archive, err := image.LocateImage(opts.lxcpath, img)
+		image_archive, err := image.LocateImage(conf.StoragePath, img)
 		if err != nil {
 			log.Errorf("Unable to locate image %s: %s", img, err)
 			return

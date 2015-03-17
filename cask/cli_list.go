@@ -31,7 +31,7 @@ func cli_list(c *cli.Context, conf *config.Config) {
 		all:           c.Bool("all"),
 	}
 
-	runtimepath := filepath.Join(opts.lxcpath, opts.runtime)
+	runtimepath := filepath.Join(conf.StoragePath, opts.runtime)
 
 	log.Debug("runtime", opts.runtime)
 	log.Debug("runtimepath", runtimepath)
@@ -40,7 +40,7 @@ func cli_list(c *cli.Context, conf *config.Config) {
 	fmt.Printf(FMT, "NAME", "STATE", "IPV4")
 	fmt.Printf("%s\n", strings.Repeat("-", 41))
 
-	containers := lxc.Containers(opts.lxcpath)
+	containers := lxc.Containers(conf.StoragePath)
 	for _, container := range containers {
 		if opts.all == false && container.Running() == false {
 			continue

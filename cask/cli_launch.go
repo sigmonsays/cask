@@ -89,7 +89,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 			return
 		}
 		suffix := ".tar.gz"
-		archivepath = filepath.Join(opts.lxcpath, opts.name) + suffix
+		archivepath = filepath.Join(conf.StoragePath, opts.name) + suffix
 
 		if FileExists(archivepath) == false || opts.nocache == true {
 			log.Info("downloading", archive, "to", archivepath)
@@ -115,8 +115,8 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 
 	log.Info("launch", opts.name, "using", archivepath)
 
-	containerpath := filepath.Join(opts.lxcpath, opts.name)
-	logfile := filepath.Join(opts.lxcpath, opts.name) + ".log"
+	containerpath := filepath.Join(conf.StoragePath, opts.name)
+	logfile := filepath.Join(conf.StoragePath, opts.name) + ".log"
 	caskpath := filepath.Join(containerpath, "cask")
 	configpath := filepath.Join(containerpath, "config")
 	metadatapath := filepath.Join(containerpath, "meta.json")
@@ -137,7 +137,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		return
 	}
 
-	container, err := lxc.NewContainer(opts.name, opts.lxcpath)
+	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
 	if err != nil {
 		log.Error("NewContainer", err)
 		return
@@ -180,8 +180,8 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	log.Tracef("meta %+v", meta)
 	log.Debug("runtime", meta.Runtime)
 
-	lxcruntimepath := filepath.Join(opts.lxcpath, meta.Runtime)
-	runtime, err := lxc.NewContainer(meta.Runtime, opts.lxcpath)
+	lxcruntimepath := filepath.Join(conf.StoragePath, meta.Runtime)
+	runtime, err := lxc.NewContainer(meta.Runtime, conf.StoragePath)
 	if err != nil {
 		log.Error("getting runtime container", err)
 		return
@@ -291,7 +291,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	// hack alert...
 	ioutil.WriteFile(filepath.Join(rootfspath, "/etc/mtab"), []byte{}, 0444)
 
-	log.Info("configured", opts.lxcpath, opts.name)
+	log.Info("configured", conf.StoragePath, opts.name)
 
 	// add our script to the rootfs (temporary, we'll delete later)
 	err = shutil.CopyTree(caskpath, filepath.Join(rootfspath, "cask"), nil)

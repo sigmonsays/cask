@@ -42,7 +42,7 @@ func GetDefaultRuntime() string {
 func MergeTree(src, dst string, strip int) error {
 	var err error
 	offset := len(src)
-	fmt.Println("MergeTree", src, "to", dst)
+	log.Info("merge", src, "to", dst)
 	var newpath string
 	walkfn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {

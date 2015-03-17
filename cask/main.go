@@ -237,6 +237,23 @@ func main_cask() {
 				attach(c)
 			},
 		},
+		{
+			Name:  "import",
+			Usage: "import a image",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "bootstrap",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				attach(c)
+			},
+		},
 	}
 	app.Run(os.Args)
 }

@@ -243,11 +243,16 @@ func build_image(c *cli.Context) {
 	}
 
 	// copy the cask binary in the container
-	cask_bin := os.Args[0]
+	cask_bin, err := findSelf()
+	if err != nil {
+		log.Errorf("cask binary not found: %s", err)
+		return
+	}
+	log.Tracef("cask binary at %s", cask_bin)
 	os.MkdirAll(container_path("/sbin"), 0755)
 	err = CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
 	if err != nil {
-		log.Error("copy:", err)
+		log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
 		return
 	}
 	// TODO: dont hard code
@@ -336,7 +341,7 @@ func build_image(c *cli.Context) {
 		if FileExists(include_file) {
 			err = MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
 			if err != nil {
-				log.Error("MergeTree", include_file, err)
+				log.Error("merge", include_file, err)
 				return
 			}
 		}

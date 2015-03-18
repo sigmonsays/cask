@@ -38,3 +38,22 @@ func (b *ConfigBuilder) KeepCap(cap string) *ConfigBuilder {
 	b.SetConfigItem("lxc.cap.keep", cap)
 	return b
 }
+
+// setup common configuration
+func (b *ConfigBuilder) Common() *ConfigBuilder {
+
+	params := map[string]string{
+		"lxc.devttydir":   "lxc",
+		"lxc.pts":         "1024",
+		"lxc.tty":         "4",
+		"lxc.pivotdir":    "lxc_putold",
+		"lxc.mount.auto":  "cgroup:mixed proc:mixed sys:mixed",
+		"lxc.mount.entry": "/sys/fs/fuse/connections sys/fs/fuse/connections none bind,optional 0 0",
+		"lxc.seccomp":     "/usr/share/lxc/config/common.seccomp",
+		"lxc.include":     "/usr/share/lxc/config/common.conf.d/",
+	}
+	for k, v := range params {
+		b.SetConfigItem(k, v)
+	}
+	return b
+}

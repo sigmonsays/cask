@@ -49,6 +49,9 @@ func NewContainer(directory string) (*Container, error) {
 func (c *Container) path(path string) string {
 	return filepath.Join(c.directory, path)
 }
+func (c *Container) Path(path string) string {
+	return c.path(path)
+}
 
 func (c *Container) LoadMetadata() error {
 	m := &metadata.Meta{}
@@ -94,8 +97,6 @@ func (c *Container) Start() error {
 		return err
 	}
 
-	logfile := c.path("") + ".log"
-
 	// update container paths with current storage path
 	// reset specific config params
 	/*
@@ -121,8 +122,6 @@ func (c *Container) Start() error {
 	rootfs := fmt.Sprintf("aufs:%s:%s", runtimepath, rootfspath)
 
 	// begin container configuration
-	c.Build.SetConfigItem("lxc.loglevel", LogTrace)
-	c.Build.SetConfigItem("lxc.logfile", logfile)
 
 	c.Build.SetConfigItem("lxc.rootfs", rootfs)
 	c.Build.SetConfigItem("lxc.mount", c.path("/fstab"))

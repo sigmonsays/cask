@@ -1,6 +1,6 @@
 
 {
-   "runtime" : "ubuntu14",
+   "runtime" : "ubuntu12",
    "name" : "base"
 }
 

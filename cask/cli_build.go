@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 type BuildOptions struct {
@@ -75,15 +74,22 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	if len(opts.runtime) == 0 && len(meta.Runtime) > 0 {
 		opts.runtime = meta.Runtime
-		log.Error("Using runtime from metadata", opts.runtime)
+		log.Info("Using runtime from metadata", opts.runtime)
 	} else if opts.runtime == "" {
 		opts.runtime = GetDefaultRuntime()
-		log.Error("Using detected runtime from metadata", opts.runtime)
+		log.Info("Using detected runtime from metadata", opts.runtime)
 	}
 
-	runtime, err := lxc.NewContainer(opts.runtime, conf.StoragePath)
+	runtime_containerpath := filepath.Join(conf.StoragePath, opts.runtime)
+	log.Tracef("runtime container path %s", runtime_containerpath)
+	runtime, err := container.NewContainer(runtime_containerpath)
 	if err != nil {
 		log.Error("creating runtime:", err)
+		return
+	}
+	err = runtime.C.LoadConfigFile(runtime.Path("config"))
+	if err != nil {
+		log.Error("runtime load config:", err)
 		return
 	}
 
@@ -93,45 +99,76 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		Backend:  lxc.Aufs,
 		Snapshot: true,
 	}
-	err = runtime.Clone(container_name, clone_options)
+	err = runtime.C.Clone(container_name, clone_options)
 	if err != nil {
 		log.Error("clone:", err)
 		return
 	}
 
 	// get the clone
-	clone, err := lxc.NewContainer(container_name, conf.StoragePath)
+	clonepath := filepath.Join(conf.StoragePath, container_name)
+	clone, err := container.NewContainer(clonepath)
 	if err != nil {
-		log.Error("clone NewContainer:", err)
+		log.Error("NewContainer:", err)
+		return
+	}
+
+	// configure the clone
+	clone.Build.Common()
+
+	// configure the clones rootfs
+	runtime_rootfs := runtime.Path("rootfs")
+	clone_rootfs := clone.Path("delta")
+	rootfs := fmt.Sprintf("aufs:%s:%s", runtime_rootfs, clone_rootfs)
+	clone.Build.SetConfigItem("lxc.rootfs", rootfs)
+
+	veth := container.DefaultVethType()
+	veth.Name = "eth0"
+	veth.Link = conf.Network.Bridge
+	clone.Build.Network.AddInterface(veth)
+
+	log.Tracef("save clone config %s", clone.Path("config"))
+	err = clone.C.SaveConfigFile(clone.Path("config"))
+	if err != nil {
+		log.Errorf("SaveConfigFile: %s: %s", clone.Path("config"), err)
 		return
 	}
 
 	if opts.keep_container == false {
 		defer func() {
-			clone.Destroy()
+			clone.C.Destroy()
 		}()
 	}
 
-	rootfs_values := clone.ConfigItem("lxc.rootfs")
-	if len(rootfs_values) == 0 {
-		log.Error("cloned container:", container_name, "has no rootfs")
-		return
-	}
-	rootfs_tmp := strings.Split(rootfs_values[0], ":")
-	log.Tracef("clone has rootfs %s", rootfs_tmp)
+	// parse the rootfs
+	/*
+		rootfs_values := clone.C.ConfigItem("lxc.rootfs")
+		log.Tracef("clone has rootfs values %s", rootfs_values)
+		if len(rootfs_values) == 0 {
+			log.Error("cloned container:", container_name, "has no rootfs")
+			return
+		}
+		if rootfs_values[0] == "" {
+			log.Error("cloned container:", container_name, "has no rootfs")
+			return
+		}
+		rootfs_tmp := strings.Split(rootfs_values[0], ":")
 
-	var delta_path string
-	var cask_rootfs string
-	var cask_path string
-	if len(rootfs_tmp) > 2 {
-		delta_path = rootfs_tmp[2]
-		cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
-		cask_path = filepath.Join(delta_path, "cask")
-	} else {
-		delta_path = rootfs_values[0]
-		cask_rootfs = filepath.Join(opts.caskpath, "rootfs")
-		cask_path = filepath.Join(delta_path, "cask")
-	}
+		if len(rootfs_tmp) > 2 {
+			deltapath = rootfs_tmp[2]
+			caskpath = filepath.Join(deltapath, "cask")
+		} else {
+			deltapath = rootfs_values[0]
+			caskrootfs = filepath.Join(opts.caskpath, "rootfs")
+			caskpath = filepath.Join(deltapath, "cask")
+		}
+		log.Tracef("deltapath %s", deltapath)
+		log.Tracef("caskrootfs %s", caskrootfs)
+		log.Tracef("caskpath %s", caskpath)
+	*/
+	deltapath := clone.Path("delta")
+	caskrootfs := filepath.Join(opts.caskpath, "rootfs")
+	caskpath := filepath.Join(deltapath, "cask")
 
 	containerpath := filepath.Join(conf.StoragePath, meta.Name)
 	rootfs_dir := filepath.Join(containerpath, "rootfs")
@@ -141,35 +178,28 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	// destroy existing data
 	os.RemoveAll(containerpath)
 
-	log.Debug("cask path", cask_path)
+	log.Debug("cask path", caskpath)
 	log.Debug("container path", containerpath)
 	log.Debug("archive path", archive_path)
 
 	// add our script to the rootfs (temporary, we'll delete later)
-	err = shutil.CopyTree(opts.caskpath, cask_path, nil)
+	err = MergeTree(opts.caskpath, caskpath, 0)
 	if err != nil {
-		log.Error("CopyTree", opts.caskpath, "to", cask_path, err)
+		log.Error("MergeTree", opts.caskpath, "to", caskpath, err)
 		return
 	}
 
 	container_path := func(subpath string) string {
-		return filepath.Join(delta_path, subpath[1:])
+		return filepath.Join(deltapath, subpath[1:])
 	}
 
 	os.MkdirAll(container_path("/cask/bin"), 0544)
-
-	// save a copy of the config in the container
-	// copy the runtime configuration
 	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
 
-	fh, err := os.Create(filepath.Join(containerpath, "cask", "container-config"))
-	if err != nil {
-		log.Error("Create", err)
-		return
-	}
-	keys := runtime.ConfigKeys()
+	// set the configuration in metadata from the runtime
+	keys := runtime.C.ConfigKeys()
 	for _, key := range keys {
-		values := runtime.ConfigItem(key)
+		values := runtime.C.ConfigItem(key)
 
 		if len(values) == 0 {
 			continue
@@ -182,7 +212,6 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			meta.SetConfigItem(key, value)
 		}
 	}
-	fh.Close()
 
 	// extract any images from the build
 	for _, img := range meta.Build.Images {
@@ -193,7 +222,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			return
 		}
 
-		err = UntarImage(image_archive, delta_path, opts.verbose)
+		err = UntarImage(image_archive, deltapath, opts.verbose)
 		if err != nil {
 			log.Errorf("Unable to extract image %s: %s", image_archive, err)
 			return
@@ -201,15 +230,15 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// walk the rootfs dir and add all the files into the destination rootfs
-	offset := len(cask_rootfs)
-	log.Debug("copy rootfs", cask_rootfs)
+	offset := len(caskrootfs)
+	log.Debug("copy rootfs", caskrootfs)
 	newpath := ""
 	walkfn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Error("walk", path, err)
 			return err
 		}
-		newpath = filepath.Join(delta_path, path[offset:])
+		newpath = filepath.Join(deltapath, path[offset:])
 
 		if info.IsDir() {
 			os.MkdirAll(newpath, info.Mode())
@@ -224,7 +253,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		}
 		return nil
 	}
-	err = filepath.Walk(cask_rootfs, walkfn)
+	err = filepath.Walk(caskrootfs, walkfn)
 	if err != nil {
 		log.Error("walk:", err)
 		return
@@ -252,19 +281,19 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// start the container
-	err = clone.Start()
+	err = clone.C.Start()
 	if err != nil {
 		log.Error("starting cloned container:", err)
 		return
 	}
 
 	log.Tracef("Waiting for RUNNING state..")
-	clone.Wait(lxc.RUNNING, opts.waitTimeout)
+	clone.C.Wait(lxc.RUNNING, opts.waitTimeout)
 
 	if opts.waitMask >= container.WaitMaskNetwork {
 		log.Infof("container started, waiting %s for network..", opts.waitNetworkTimeout)
 		// wait for it to startup and get network
-		iplist, err := clone.WaitIPAddresses(opts.waitNetworkTimeout)
+		iplist, err := clone.C.WaitIPAddresses(opts.waitNetworkTimeout)
 		if err != nil {
 			log.Infof("WARNING did not get ip address from container: %s", err)
 		}
@@ -277,7 +306,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	attach_options := lxc.DefaultAttachOptions
 	attach_options.ClearEnv = false
 	cmd := []string{"sh", "-c", "/cask/bootstrap"}
-	exit_code, err := clone.RunCommandStatus(cmd, attach_options)
+	exit_code, err := clone.C.RunCommandStatus(cmd, attach_options)
 	if err != nil {
 		log.Error("RunCommand", cmd, err)
 		return
@@ -289,13 +318,13 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// remove rootfs/cask path from container
-	os.RemoveAll(cask_path)
+	os.RemoveAll(caskpath)
 
-	err = clone.Stop()
+	err = clone.C.Stop()
 	if err != nil {
 		log.Error("stop", err)
 	}
-	log.Info("stopped container with runtime delta at", delta_path)
+	log.Info("stopped container with runtime delta at", deltapath)
 
 	// simple file convention for container file system
 	// rename the delta into rootfs, ie LXPATH / NAME / rootfs /
@@ -311,8 +340,8 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	ioutil.WriteFile(metadata_path, new_meta_blob, 0422)
 
-	log.Debug("rename", delta_path, "->", rootfs_dir)
-	err = os.Rename(delta_path, rootfs_dir)
+	log.Debug("rename", deltapath, "->", rootfs_dir)
+	err = os.Rename(deltapath, rootfs_dir)
 	if err != nil {
 		log.Error("Rename:", err)
 		return
@@ -335,7 +364,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		}
 	}
 
-	os.Mkdir(delta_path, 0644)
+	os.Mkdir(deltapath, 0644)
 
 	// process image exclusions
 	for _, exclude := range meta.Build.Exclude {

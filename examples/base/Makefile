@@ -1,4 +1,5 @@
 SUDO := sudo
+FLAGS := -l trace
 
 all:
-	$(SUDO) cask -l trace build --caskpath cask/
+	$(SUDO) cask $(FLAGS) build --caskpath cask/

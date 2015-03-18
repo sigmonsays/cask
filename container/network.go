@@ -117,7 +117,7 @@ func DefaultVethType() *VethType {
 		Link:   "lxcbr0",
 		Flags:  "up",
 		Name:   "eth0",
-		Hwaddr: "00:16:3e:xx:xx:xxeth0",
+		Hwaddr: "00:16:3e:xx:xx:xx",
 	}
 }
 func (t *VethType) Configure(b *NetworkBuilder) error {

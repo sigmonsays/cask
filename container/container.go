@@ -32,6 +32,8 @@ func NewContainer(directory string) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	l.ClearConfig()
+
 	c := &Container{
 		Name:      filepath.Base(directory),
 		directory: directory,
@@ -111,8 +113,6 @@ func (c *Container) Start() error {
 		}
 	*/
 
-	c.C.ClearConfig()
-
 	// we always need to set the paths so containers are "relocatable" -- that is they can be moved around
 	// on disk and started
 
@@ -128,7 +128,6 @@ func (c *Container) Start() error {
 	c.Build.SetConfigItem("lxc.mount", c.path("/fstab"))
 
 	configpath := c.path("config")
-
 	log.Tracef("save config %s", configpath)
 	err = c.C.SaveConfigFile(configpath)
 	if err != nil {

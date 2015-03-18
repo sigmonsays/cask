@@ -42,6 +42,11 @@ func cli_start(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
+	veth := container.DefaultVethType()
+	veth.Name = "eth0"
+	veth.Link = conf.Network.Bridge
+	c.Build.Network.AddInterface(veth)
+
 	err = c.Start()
 	if err != nil {
 		log.Error("container start", opts.name, err)

@@ -235,8 +235,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	}
 
 	veth := container.DefaultVethType()
-	veth.Name = "eth0"
-	veth.Link = "lxcbr0"
+	veth.Link = conf.Network.Bridge
 	build.Network.AddInterface(veth)
 	/*
 		// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!

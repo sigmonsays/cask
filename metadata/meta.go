@@ -108,6 +108,7 @@ type Options struct {
 }
 
 type NetworkConfig struct {
+	Mode string
 }
 
 type MountConfig struct {

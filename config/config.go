@@ -16,11 +16,21 @@ func DefaultConfigPath() string {
 type Config struct {
 	// where to store everything on disk by default
 	StoragePath string
+
+	// hypervisor network configuration
+	Network NetworkConfig
+}
+
+type NetworkConfig struct {
+	Bridge string
 }
 
 func DefaultConfig() *Config {
 	return &Config{
 		StoragePath: "/var/lib/cask",
+		Network: NetworkConfig{
+			Bridge: "lxcbr0",
+		},
 	}
 }
 

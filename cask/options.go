@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/container"
 	"time"
 )
 
@@ -15,11 +16,6 @@ type CommonOptions struct {
 	waitMask int
 }
 
-const (
-	WaitMaskStart = iota
-	WaitMaskNetwork
-)
-
 func GetCommonOptions(c *cli.Context) *CommonOptions {
 	opts := &CommonOptions{}
 	opts.verbose = c.GlobalBool("verbose")
@@ -27,5 +23,14 @@ func GetCommonOptions(c *cli.Context) *CommonOptions {
 	opts.waitTimeout = c.GlobalDuration("wait-timeout")
 	opts.waitNetworkTimeout = c.GlobalDuration("net-timeout")
 	log.Tracef("common options %+v", opts)
+	return opts
+}
+
+func GetWaitOptions(c *cli.Context) *container.WaitOptions {
+	opts := &container.WaitOptions{
+		WaitMask:           c.GlobalInt("wait"),
+		WaitTimeout:        c.GlobalDuration("wait-timeout"),
+		WaitNetworkTimeout: c.GlobalDuration("net-timeout"),
+	}
 	return opts
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
+	"github.com/sigmonsays/cask/container"
 	"github.com/sigmonsays/cask/image"
+	"github.com/sigmonsays/cask/metadata"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -48,13 +50,13 @@ func cli_build(c *cli.Context, conf *config.Config) {
 	cmd.Wait()
 }
 
-func build_image(c *cli.Context, conf *config.Config) {
+func build_image(ctx *cli.Context, conf *config.Config) {
 
 	opts := &BuildOptions{
-		CommonOptions:  GetCommonOptions(c),
-		keep_container: c.Bool("keep"),
-		runtime:        c.String("runtime"),
-		caskpath:       c.String("caskpath"),
+		CommonOptions:  GetCommonOptions(ctx),
+		keep_container: ctx.Bool("keep"),
+		runtime:        ctx.String("runtime"),
+		caskpath:       ctx.String("caskpath"),
 	}
 
 	log.Tracef("wait %v", opts.waitMask)
@@ -62,24 +64,13 @@ func build_image(c *cli.Context, conf *config.Config) {
 	log.Info("cask build runtime", opts.runtime)
 	log.Info("cask path", opts.caskpath)
 
-	meta_path := filepath.Join(opts.caskpath, "meta.json")
-	meta_blob, err := ioutil.ReadFile(meta_path)
-	if err != nil {
-		log.Errorf("meta.json: %s", err)
-		return
-	}
+	metadatapath := filepath.Join(opts.caskpath, "meta.json")
 
-	meta := &Meta{}
-	err = json.Unmarshal(meta_blob, meta)
+	meta := &metadata.Meta{}
+	err := meta.ReadFile(metadatapath)
 	if err != nil {
-		log.Tracef("meta.json content %s", meta_blob)
-		log.Error("meta.json:", err)
+		log.Error("meta ReadFile:", err)
 		return
-	}
-	log.Tracef("meta %+v", meta)
-
-	if meta.Config == nil {
-		meta.Config = make(map[string][]string, 0)
 	}
 
 	if len(opts.runtime) == 0 && len(meta.Runtime) > 0 {
@@ -96,20 +87,20 @@ func build_image(c *cli.Context, conf *config.Config) {
 		return
 	}
 
-	container := fmt.Sprintf("build-%d", os.Getpid())
-	log.Tracef("temporary container name %s", container)
+	container_name := fmt.Sprintf("build-%d", os.Getpid())
+	log.Tracef("temporary container name %s", container_name)
 	clone_options := lxc.CloneOptions{
 		Backend:  lxc.Aufs,
 		Snapshot: true,
 	}
-	err = runtime.Clone(container, clone_options)
+	err = runtime.Clone(container_name, clone_options)
 	if err != nil {
 		log.Error("clone:", err)
 		return
 	}
 
 	// get the clone
-	clone, err := lxc.NewContainer(container, conf.StoragePath)
+	clone, err := lxc.NewContainer(container_name, conf.StoragePath)
 	if err != nil {
 		log.Error("clone NewContainer:", err)
 		return
@@ -123,7 +114,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 
 	rootfs_values := clone.ConfigItem("lxc.rootfs")
 	if len(rootfs_values) == 0 {
-		log.Error("cloned container:", container, "has no rootfs")
+		log.Error("cloned container:", container_name, "has no rootfs")
 		return
 	}
 	rootfs_tmp := strings.Split(rootfs_values[0], ":")
@@ -184,16 +175,11 @@ func build_image(c *cli.Context, conf *config.Config) {
 			continue
 		}
 
-		if _, ok := meta.Config[key]; ok == false {
-			meta.Config[key] = make([]string, 0)
-		}
-
 		for _, value := range values {
 			if value == "" {
 				continue
 			}
-			fmt.Fprintf(fh, "%s = %s\n", key, value)
-			meta.Config[key] = append(meta.Config[key], value)
+			meta.SetConfigItem(key, value)
 		}
 	}
 	fh.Close()
@@ -275,7 +261,7 @@ func build_image(c *cli.Context, conf *config.Config) {
 	log.Tracef("Waiting for RUNNING state..")
 	clone.Wait(lxc.RUNNING, opts.waitTimeout)
 
-	if opts.waitMask >= WaitMaskNetwork {
+	if opts.waitMask >= container.WaitMaskNetwork {
 		log.Infof("container started, waiting %s for network..", opts.waitNetworkTimeout)
 		// wait for it to startup and get network
 		iplist, err := clone.WaitIPAddresses(opts.waitNetworkTimeout)

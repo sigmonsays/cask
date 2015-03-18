@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
-	cc "github.com/sigmonsays/cask/container"
+	"github.com/sigmonsays/cask/container"
 	"github.com/sigmonsays/cask/container/caps"
-	. "github.com/sigmonsays/cask/util"
+	"github.com/sigmonsays/cask/metadata"
+	"github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io"
@@ -59,14 +59,14 @@ func (l *LaunchFunctions) Execute() error {
 	return err
 }
 
-func cli_launch(c *cli.Context, conf *config.Config) {
+func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	opts := &LaunchOptions{
-		CommonOptions: GetCommonOptions(c),
-		name:          c.String("name"),
-		nocache:       c.Bool("nocache"),
-		runtime:       c.String("runtime"),
-		foreground:    c.Bool("foreground"),
+		CommonOptions: GetCommonOptions(ctx),
+		name:          ctx.String("name"),
+		nocache:       ctx.Bool("nocache"),
+		runtime:       ctx.String("runtime"),
+		foreground:    ctx.Bool("foreground"),
 	}
 
 	if opts.name == "" {
@@ -80,7 +80,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	// used to execute commands after the container has started
 	post_launch := NewLaunchFunctions()
 
-	archive := c.Args().First()
+	archive := ctx.Args().First()
 	var archivepath string
 	if strings.HasPrefix(archive, "http") {
 		_, err := url.Parse(archive)
@@ -91,7 +91,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		suffix := ".tar.gz"
 		archivepath = filepath.Join(conf.StoragePath, opts.name) + suffix
 
-		if FileExists(archivepath) == false || opts.nocache == true {
+		if util.FileExists(archivepath) == false || opts.nocache == true {
 			log.Info("downloading", archive, "to", archivepath)
 			f, err := os.Create(archivepath)
 			if err != nil {
@@ -132,52 +132,45 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	log.Debug("metadata path", metadatapath)
 	log.Debug("rootfs path", rootfspath)
 
-	if FileExists(archivepath) == false {
+	if util.FileExists(archivepath) == false {
 		log.Error("Archive not found:", archivepath)
 		return
 	}
 
-	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
+	// load the meta
+	meta := metadata.NewMeta(opts.name)
+	err := meta.ReadFile(metadatapath)
+	if err != nil {
+		log.Error("load container meta", opts.name, err)
+		return
+	}
+
+	c, err := container.NewContainer(containerpath)
 	if err != nil {
 		log.Error("NewContainer", err)
 		return
 	}
 
-	build := cc.NewConfigBuilder(container)
+	build := c.Build
 
-	if container.Defined() {
+	if c.C.Defined() {
 		log.Info("destroying existing container", opts.name)
 
-		if container.Running() {
-			err := container.Stop()
+		if c.C.Running() {
+			err := c.C.Stop()
 			if err != nil {
 				log.Warn("Stop", opts.name, err)
 			}
 		}
-		container.Destroy()
+		c.C.Destroy()
 	}
 
-	err = UntarImage(archivepath, containerpath, opts.verbose)
+	err = util.UntarImage(archivepath, containerpath, opts.verbose)
 	if err != nil {
 		log.Errorf("UntarImage (in %s): %s\n", containerpath, err)
 		return
 	}
 
-	meta := &Meta{}
-
-	meta_blob, err := ioutil.ReadFile(metadatapath)
-	if err != nil {
-		log.Error("ReadFile", metadatapath, err)
-		return
-	}
-
-	err = json.Unmarshal(meta_blob, meta)
-	if err != nil {
-		log.Error("Unmarshal", err)
-		return
-	}
-
-	log.Tracef("meta %+v", meta)
 	log.Debug("runtime", meta.Runtime)
 
 	lxcruntimepath := filepath.Join(conf.StoragePath, meta.Runtime)
@@ -193,43 +186,29 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	log.Debug("runtime lxc config path", lxcruntimepath)
 	log.Debug("runtime path", runtimepath)
 
-	container.ClearConfig()
+	c.C.ClearConfig()
 
 	if opts.verbose {
-		container.SetVerbosity(lxc.Verbose)
+		c.C.SetVerbosity(lxc.Verbose)
 	}
 
 	// begin container configuration
-	build.SetConfigItem("lxc.loglevel", cc.LogTrace)
+	build.SetConfigItem("lxc.loglevel", container.LogTrace)
 	build.SetConfigItem("lxc.logfile", logfile)
 
 	os.MkdirAll(filepath.Dir(mountpath), 0755)
 
-	fstab, err := os.Create(mountpath)
-	if err != nil {
-		log.Error("Create", mountpath, err)
-		return
+	if util.FileExists(mountpath) == false {
+		fstab, err := os.Create(mountpath)
+		if err != nil {
+			log.Error("Create", mountpath, err)
+			return
+		}
+		fstab.Close()
 	}
-
-	fstab.Close()
 
 	// merge config in from meta
-	log.Debug("merge config")
-	for key, values := range meta.Config {
-
-		if key == "lxc.network" {
-			// work around for network configuration not being set properly
-			continue
-		}
-		if key == "lxc.cgroup" {
-			// work around for cgroup configuration not being set properly
-			continue
-		}
-
-		for _, value := range values {
-			build.SetConfigItem(key, value)
-		}
-	}
+	log.Debug("merge lxc config")
 
 	// specific configuration for this container
 	build.SetConfigItem("lxc.utsname", opts.name)
@@ -242,7 +221,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	post_launch.Add(func() error {
 		attach_options := lxc.DefaultAttachOptions
 		cmd := []string{"ifconfig"}
-		container.RunCommand(cmd, attach_options)
+		c.C.RunCommand(cmd, attach_options)
 		return nil
 	})
 
@@ -255,7 +234,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
 	}
 
-	veth := cc.DefaultVethType()
+	veth := container.DefaultVethType()
 	veth.Name = "eth0"
 	veth.Link = "lxcbr0"
 	build.Network.AddInterface(veth)
@@ -275,10 +254,10 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		build.Network.AddInterface(veth).WithNetworkConfig(NetworkConfig)
 	*/
 
-	if container.Defined() == false {
+	if c.C.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")
 
-		err := container.SaveConfigFile(configpath)
+		err := c.C.SaveConfigFile(configpath)
 		if err != nil {
 			log.Error("SaveConfig", err)
 			return
@@ -304,22 +283,22 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	host_mount := "/host"
 	if meta.Options.HostMount {
 		log.Debug("adding host mount", host_mount)
-		if FileExists(host_mount) == false {
+		if util.FileExists(host_mount) == false {
 			os.MkdirAll(host_mount, 0755)
 		}
 		path := container_path(host_mount)
-		if FileExists(path) == false {
+		if util.FileExists(path) == false {
 			os.MkdirAll(path, 0755)
 		}
 		build.Mount.Bind(host_mount, path)
 	}
 	for _, bind_mount := range meta.Mount.BindMount {
 		log.Debug("adding bind mount", bind_mount)
-		if FileExists(bind_mount) == false {
+		if util.FileExists(bind_mount) == false {
 			os.MkdirAll(bind_mount, 0755)
 		}
 		path := container_path(bind_mount)
-		if FileExists(path) == false {
+		if util.FileExists(path) == false {
 			os.MkdirAll(path, 0755)
 		}
 		build.Mount.Bind(bind_mount, path)
@@ -361,7 +340,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	}
 
 	// save the configuration
-	err = container.SaveConfigFile(configpath)
+	err = c.C.SaveConfigFile(configpath)
 	if err != nil {
 		log.Error("SaveConfigFile", configpath, err)
 		return
@@ -370,8 +349,8 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	if opts.foreground {
 		// cmdline is what we execute
 		var cmdline []string
-		if len(c.Args()) > 1 {
-			cmdline = c.Args()[1:]
+		if len(ctx.Args()) > 1 {
+			cmdline = ctx.Args()[1:]
 			log.Tracef("using command from cli %s", cmdline)
 		} else if len(meta.DefaultCmd) > 0 {
 			cmdline = strings.Split(meta.DefaultCmd, " ")
@@ -384,8 +363,8 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		// TODO: Figure out how to do this without using lxc-execute ...
 		args := []string{
 			"--rcfile", configpath,
-			"--name", container.Name(),
-			"--lxcpath", filepath.Join(container.ConfigPath(), container.Name()),
+			"--name", c.C.Name(),
+			"--lxcpath", filepath.Join(c.C.ConfigPath(), c.C.Name()),
 			"--logpriority", "DEBUG",
 			"--logfile", logfile,
 			"--",
@@ -410,40 +389,12 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		os.Exit(0)
 	}
 
-	// start the container
-	err = container.Start()
-	if err != nil {
-		log.Error("Start", opts.name, err)
-		return
-	}
-
-	// wait for container to start up....
-	if opts.waitMask >= WaitMaskStart {
-		log.Tracef("Waiting for container state RUNNING")
-		container.Wait(lxc.RUNNING, opts.waitTimeout)
-	}
-
-	var ip string
-	var iplist []string
-	if opts.waitMask >= WaitMaskNetwork {
-		log.Info("container started, waiting for network..")
-		// wait for it to startup and get network
-		iplist, err = container.WaitIPAddresses(opts.waitNetworkTimeout)
-		log.Debug("iplist", iplist)
-		if err != nil {
-			log.Warn("did not get ip address from container", err)
-		}
-	}
-	if len(iplist) > 0 {
-		ip = iplist[0]
-	}
-
 	// execute launch script now
-	if FileExists(filepath.Join(rootfspath, "/cask/launch")) {
+	if util.FileExists(filepath.Join(rootfspath, "/cask/launch")) {
 		attach_options := lxc.DefaultAttachOptions
 		attach_options.ClearEnv = false
 		cmdline := []string{"sh", "-c", "/cask/launch"}
-		exit_code, err := container.RunCommandStatus(cmdline, attach_options)
+		exit_code, err := c.C.RunCommandStatus(cmdline, attach_options)
 		if err != nil {
 			log.Error("RunCommandStatus", cmdline, err)
 			return
@@ -465,9 +416,4 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	// if we want to remove the /cask path from the container...
 	// os.RemoveAll(filepath.Join(rootfspath, "cask"))
 
-	if len(ip) > 0 {
-		log.Info("container", opts.name, "is running with ip", ip)
-	} else {
-		log.Info("container", opts.name, "is running")
-	}
 }

@@ -1,4 +1,4 @@
-package main
+package metadata
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ type Meta struct {
 	Runtime string `json:"runtime"`
 
 	// holds configuration parameters such as lxc.*
-	Config map[string][]string `json:"config"`
+	Lxc map[string][]string `json:"lxc"`
 
 	// misc options
 	Options Options `json:"options"`
@@ -56,13 +56,13 @@ type Meta struct {
 }
 
 func (m *Meta) SetConfigItem(key, value string) error {
-	if m.Config == nil {
-		m.Config = make(map[string][]string)
+	if m.Lxc == nil {
+		m.Lxc = make(map[string][]string)
 	}
-	if _, ok := m.Config[key]; ok == false {
-		m.Config[key] = make([]string, 0)
+	if _, ok := m.Lxc[key]; ok == false {
+		m.Lxc[key] = make([]string, 0)
 	}
-	m.Config[key] = append(m.Config[key], value)
+	m.Lxc[key] = append(m.Lxc[key], value)
 	return nil
 }
 
@@ -76,6 +76,7 @@ func (m *Meta) ReadFile(path string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

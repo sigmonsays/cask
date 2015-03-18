@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
+	"github.com/sigmonsays/cask/metadata"
 	. "github.com/sigmonsays/cask/util"
 	"gopkg.in/lxc/go-lxc.v2"
 	"os"
@@ -90,7 +91,7 @@ func cli_import(c *cli.Context, conf *config.Config) {
 	log.Info(opts.name, "rootfspath", rootfspath)
 
 	// create the metadata for the image
-	meta := &Meta{}
+	meta := &metadata.Meta{}
 	meta.Name = opts.name
 	keys := container.ConfigKeys()
 	for _, key := range keys {

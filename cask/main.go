@@ -51,14 +51,17 @@ func main_cask() {
 			Value: config.DefaultConfigPath(),
 		},
 		cli.StringFlag{
-			Name: "storage, s",
+			Name:  "storage, s",
+			Usage: "override storage path",
 		},
 		cli.BoolFlag{
-			Name: "verbose",
+			Name:  "verbose",
+			Usage: "be verbose",
 		},
 		cli.StringFlag{
 			Name:  "level, l",
 			Value: "WARN",
+			Usage: "change log level",
 		},
 		cli.IntFlag{
 			Name:  "wait",
@@ -68,10 +71,12 @@ func main_cask() {
 		cli.DurationFlag{
 			Name:  "wait-timeout, w",
 			Value: time.Duration(3) * time.Second,
+			Usage: "how long to wait for container to start",
 		},
 		cli.DurationFlag{
 			Name:  "net-timeout",
 			Value: time.Duration(15) * time.Second,
+			Usage: "how long to wait for container network to start",
 		},
 	}
 	app.Before = func(c *cli.Context) error {

@@ -5,6 +5,12 @@ import (
 	"io/ioutil"
 )
 
+func NewMeta(name string) *Meta {
+	return &Meta{
+		Name: name,
+	}
+}
+
 // describe the metadata associated with an image and a container
 // when its launched
 type Meta struct {
@@ -57,6 +63,19 @@ func (m *Meta) SetConfigItem(key, value string) error {
 		m.Config[key] = make([]string, 0)
 	}
 	m.Config[key] = append(m.Config[key], value)
+	return nil
+}
+
+func (m *Meta) ReadFile(path string) error {
+	meta_blob, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(meta_blob, m)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

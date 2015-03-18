@@ -1,7 +1,7 @@
-package builder
+package container
 
 import (
-	"github.com/sigmonsays/cask/builder/cgroup"
+	"github.com/sigmonsays/cask/container/cgroup"
 	"gopkg.in/lxc/go-lxc.v2"
 )
 

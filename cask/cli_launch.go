@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/codegangsta/cli"
-	"github.com/sigmonsays/cask/builder"
-	"github.com/sigmonsays/cask/builder/caps"
 	"github.com/sigmonsays/cask/config"
+	cc "github.com/sigmonsays/cask/container"
+	"github.com/sigmonsays/cask/container/caps"
 	. "github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -143,7 +143,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		return
 	}
 
-	build := builder.NewConfigBuilder(container)
+	build := cc.NewConfigBuilder(container)
 
 	if container.Defined() {
 		log.Info("destroying existing container", opts.name)
@@ -200,7 +200,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 	}
 
 	// begin container configuration
-	build.SetConfigItem("lxc.loglevel", builder.LogTrace)
+	build.SetConfigItem("lxc.loglevel", cc.LogTrace)
 	build.SetConfigItem("lxc.logfile", logfile)
 
 	os.MkdirAll(filepath.Dir(mountpath), 0755)
@@ -255,7 +255,7 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
 	}
 
-	veth := builder.DefaultVethType()
+	veth := cc.DefaultVethType()
 	veth.Name = "eth0"
 	veth.Link = "lxcbr0"
 	build.Network.AddInterface(veth)
@@ -266,8 +266,8 @@ func cli_launch(c *cli.Context, conf *config.Config) {
 		err = ioutil.WriteFile(container_path("/etc/network/interfaces"), []byte("auto lo\niface lo inet loopback"), 0744)
 		WarnIf(err)
 		TODO: static IP example..
-		NetworkConfig := &builder.NetworkConfig{
-			IPv4: builder.IPv4Config{
+		NetworkConfig := &cc.NetworkConfig{
+			IPv4: cc.IPv4Config{
 				IP:      "192.168.7.55/24",
 				Gateway: "192.168.7.1",
 			},

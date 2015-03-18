@@ -8,6 +8,7 @@ import (
 type ConfigBuilder struct {
 	c       *lxc.Container
 	Network *NetworkBuilder
+	Memory  *MemoryBuilder
 	Mount   *MountBuilder
 	Cgroup  *cgroup.CgroupBuilder
 }

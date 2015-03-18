@@ -108,7 +108,7 @@ type Options struct {
 }
 
 type NetworkConfig struct {
-	Mode string
+	Mode string `json:"mode,omitempty"`
 }
 
 type MountConfig struct {
@@ -116,15 +116,15 @@ type MountConfig struct {
 }
 
 type CgroupConfig struct {
-	Cpu CpuConfig `json:"cpu"`
+	Cpu CpuConfig `json:"cpu,omitempty"`
 }
 
 type CpuConfig struct {
 	// how many shares the CPU can use
-	Shares string `json:"shares"`
+	Shares string `json:"shares,omitempty"`
 
 	// tie a specific process to given CPUs
-	CPU string `json:"cpu"`
+	CPU string `json:"cpu,omitempty"`
 }
 
 type AutoStartConfig struct {

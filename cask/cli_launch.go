@@ -69,6 +69,8 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		foreground:    ctx.Bool("foreground"),
 	}
 
+	wait := GetWaitOptions(ctx)
+
 	if opts.name == "" {
 		opts.name = fmt.Sprintf("container-%d", os.Getpid())
 	}
@@ -80,6 +82,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	// used to execute commands after the container has started
 	post_launch := NewLaunchFunctions()
 
+	// download the archive over HTTP if its a URL
 	archive := ctx.Args().First()
 	var archivepath string
 	if strings.HasPrefix(archive, "http") {
@@ -137,14 +140,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	// load the meta
-	meta := metadata.NewMeta(opts.name)
-	err := meta.ReadFile(metadatapath)
-	if err != nil {
-		log.Error("load container meta", opts.name, err)
-		return
-	}
-
 	c, err := container.NewContainer(containerpath)
 	if err != nil {
 		log.Error("NewContainer", err)
@@ -171,20 +166,22 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	log.Debug("runtime", meta.Runtime)
-
-	lxcruntimepath := filepath.Join(conf.StoragePath, meta.Runtime)
-	runtime, err := lxc.NewContainer(meta.Runtime, conf.StoragePath)
+	// load the meta
+	meta := metadata.NewMeta(opts.name)
+	err = meta.ReadFile(metadatapath)
 	if err != nil {
-		log.Error("getting runtime container", err)
+		log.Error("load container meta", opts.name, err)
 		return
 	}
+	log.Debug("runtime", meta.Runtime)
 
-	runtime_rootfs_values := runtime.ConfigItem("lxc.rootfs")
-	runtimepath := runtime_rootfs_values[0]
-
-	log.Debug("runtime lxc config path", lxcruntimepath)
-	log.Debug("runtime path", runtimepath)
+	runtimepath := filepath.Join(conf.StoragePath, meta.Runtime)
+	runtime, err := container.NewContainer(runtimepath)
+	if err != nil {
+		log.Errorf("getting runtime container: %s", err)
+		return
+	}
+	log.Debugf("runtime at %s", runtime.Path("/"))
 
 	c.C.ClearConfig()
 
@@ -207,9 +204,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		fstab.Close()
 	}
 
-	// merge config in from meta
-	log.Debug("merge lxc config")
-
 	// specific configuration for this container
 	build.SetConfigItem("lxc.utsname", opts.name)
 
@@ -217,7 +211,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	build.SetConfigItem("lxc.rootfs", rootfs)
 	build.SetConfigItem("lxc.mount", mountpath)
 
-	log.Debug("config network")
 	post_launch.Add(func() error {
 		attach_options := lxc.DefaultAttachOptions
 		cmd := []string{"ifconfig"}
@@ -234,6 +227,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
 	}
 
+	log.Debug("config network")
 	veth := container.DefaultVethType()
 	veth.Link = conf.Network.Bridge
 	build.Network.AddInterface(veth)
@@ -263,10 +257,13 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		}
 	}
 
+	// set hostname in container
 	os.MkdirAll(rootfspath, 0755)
 	os.MkdirAll(filepath.Join(rootfspath, "/etc"), 0755)
 	ioutil.WriteFile(hostnamepath, []byte(opts.name), 0444)
+
 	// hack alert...
+	// make sure /etc/mtab exists
 	ioutil.WriteFile(filepath.Join(rootfspath, "/etc/mtab"), []byte{}, 0444)
 
 	log.Info("configured", conf.StoragePath, opts.name)
@@ -303,8 +300,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		build.Mount.Bind(bind_mount, path)
 	}
 
-	// always drop these
-	//		"sys_module", "mac_admin", "mac_override", "sys_time",
+	// always drop these - "sys_module", "mac_admin", "mac_override", "sys_time",
 	default_drop := []string{
 		cap.CAP_SYS_MODULE,
 		cap.CAP_MAC_ADMIN,
@@ -314,10 +310,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	for _, d := range default_drop {
 		build.SetConfigItem("lxc.cap.drop", d)
 	}
-
-	// some standard mounts
-	// build.SetConfigItem("lxc.mount.auto", "proc:mixed")
-	// build.SetConfigItem("lxc.mount.auto", "sys:rw")
 
 	// set auto start configuration
 	if meta.AutoStart.Enable {
@@ -386,6 +378,18 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 			return
 		}
 		os.Exit(0)
+	}
+
+	err = c.Start()
+	if err != nil {
+		log.Error("container start", opts.name, err)
+		return
+	}
+
+	err = c.WaitStart(wait)
+	if err != nil {
+		log.Error("container wait start", opts.name, err)
+		return
 	}
 
 	// execute launch script now

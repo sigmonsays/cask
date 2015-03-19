@@ -40,6 +40,10 @@ func cli_import(ctx *cli.Context, conf *config.Config) {
 	}
 
 	importpath := ctx.Args().First()
+	if importpath == "" {
+		log.Errorf("import path is required")
+		return
+	}
 	log.Infof("importing rootfs from %s", importpath)
 
 	opts.tmp_name = fmt.Sprintf("%s-%d", opts.name, os.Getpid())

@@ -42,10 +42,13 @@ func cli_start(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	veth := container.DefaultVethType()
-	veth.Name = "eth0"
-	veth.Link = conf.Network.Bridge
-	c.Build.Network.AddInterface(veth)
+	c.Build.Common()
+
+	err = c.Prepare(conf, c.Meta)
+	if err != nil {
+		log.Errorf("Prepare: %s", err)
+		return
+	}
 
 	err = c.Start()
 	if err != nil {

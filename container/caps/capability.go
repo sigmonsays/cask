@@ -1,4 +1,4 @@
-package cap
+package caps
 
 var (
 	CAP_AUDIT_CONTROL    = "audit_control"

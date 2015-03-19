@@ -42,7 +42,7 @@ CAP_WAKE_ALARM
 "
 (
 cat << EOF
-package cap
+package caps
 
 var (
 EOF

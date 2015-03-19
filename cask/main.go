@@ -246,10 +246,10 @@ func main_cask() {
 					Name: "gid",
 				},
 				cli.BoolFlag{
-					Name: "clear_env",
+					Name: "clear-env",
 				},
-				cli.StringFlag{
-					Name: "keep_env",
+				cli.BoolFlag{
+					Name: "keep-env",
 				},
 			},
 			Action: func(c *cli.Context) {

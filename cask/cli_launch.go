@@ -5,7 +5,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
-	"github.com/sigmonsays/cask/container/caps"
 	"github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -225,40 +224,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return nil
 	})
 
-	// provision CPU shares and CPU sets
-	log.Debugf("configure cgroups..")
-	if len(meta.Cgroup.Cpu.CPU) > 0 {
-		build.Cgroup.CpuSet.CPUs(meta.Cgroup.Cpu.CPU)
-	}
-	if len(meta.Cgroup.Cpu.Shares) > 0 {
-		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
-	}
-
-	// provision Memory limit
-	if meta.Cgroup.Memory.Limit > 0 {
-		build.Cgroup.Memory.Limit(meta.Cgroup.Memory.Limit)
-	}
-
-	log.Debug("config network")
-	veth := container.DefaultVethType()
-	veth.Link = conf.Network.Bridge
-	build.Network.AddInterface(veth)
-	/*
-		// NOTE: for static network to be configure we need to ensure no DHCP is running in the container!!
-		err = os.MkdirAll(container_path("/etc/network"), 0755)
-		WarnIf(err)
-		err = ioutil.WriteFile(container_path("/etc/network/interfaces"), []byte("auto lo\niface lo inet loopback"), 0744)
-		WarnIf(err)
-		TODO: static IP example..
-		NetworkConfig := &cc.NetworkConfig{
-			IPv4: cc.IPv4Config{
-				IP:      "192.168.7.55/24",
-				Gateway: "192.168.7.1",
-			},
-		}
-		build.Network.AddInterface(veth).WithNetworkConfig(NetworkConfig)
-	*/
-
 	if c.C.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")
 
@@ -287,65 +252,9 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	// Process any options
-	host_mount := "/host"
-	if meta.Options.HostMount {
-		log.Debug("adding host mount", host_mount)
-		if util.FileExists(host_mount) == false {
-			os.MkdirAll(host_mount, 0755)
-		}
-		path := container_path(host_mount)
-		if util.FileExists(path) == false {
-			os.MkdirAll(path, 0755)
-		}
-		build.Mount.Bind(host_mount, path)
-	}
-	for _, bind_mount := range meta.Mount.BindMount {
-		log.Debug("adding bind mount", bind_mount)
-		if util.FileExists(bind_mount) == false {
-			os.MkdirAll(bind_mount, 0755)
-		}
-		path := container_path(bind_mount)
-		if util.FileExists(path) == false {
-			os.MkdirAll(path, 0755)
-		}
-		build.Mount.Bind(bind_mount, path)
-	}
-
-	// always drop these - "sys_module", "mac_admin", "mac_override", "sys_time",
-	default_drop := []string{
-		cap.CAP_SYS_MODULE,
-		cap.CAP_MAC_ADMIN,
-		cap.CAP_MAC_OVERRIDE,
-		cap.CAP_SYS_TIME,
-	}
-	for _, d := range default_drop {
-		build.SetConfigItem("lxc.cap.drop", d)
-	}
-
-	// set auto start configuration
-	if meta.AutoStart.Enable {
-		s := meta.AutoStart
-		build.SetConfigItem("lxc.start.auto", "1")
-		build.SetConfigItem("lxc.start.delay", fmt.Sprintf("%d", s.Delay))
-		build.SetConfigItem("lxc.start.order", fmt.Sprintf("%d", s.Order))
-		for _, g := range s.Groups {
-			build.SetConfigItem("lxc.start.group", g)
-		}
-	}
-
-	// add/drop capabilities
-	for _, cap_add := range meta.CapAdd {
-		build.SetConfigItem("lxc.cap.add", cap_add)
-	}
-	for _, cap_drop := range meta.CapDrop {
-		build.SetConfigItem("lxc.cap.drop", cap_drop)
-	}
-
-	// save the configuration
-	err = c.C.SaveConfigFile(configpath)
+	err = c.Prepare(conf, meta)
 	if err != nil {
-		log.Error("SaveConfigFile", configpath, err)
+		log.Errorf("Prepare: %s", err)
 		return
 	}
 

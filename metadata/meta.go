@@ -38,6 +38,9 @@ type Meta struct {
 	// arbtrary data to be stored with image
 	Data map[string]string `json:"data,omitempty"`
 
+	// environment variables
+	Env map[string]string `json:"env,omitempty"`
+
 	// build paramters for building the image
 	Build BuildParams `json:"build"`
 

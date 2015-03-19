@@ -30,6 +30,9 @@ type LaunchOptions struct {
 
 	// keep application in foreground
 	foreground bool
+
+	// mounts
+	mounts []string
 }
 
 type LaunchFunc func() error
@@ -61,6 +64,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		name:          ctx.String("name"),
 		nocache:       ctx.Bool("nocache"),
 		foreground:    ctx.Bool("foreground"),
+		mounts:        ctx.StringSlice("mount"),
 	}
 
 	wait := GetWaitOptions(ctx)
@@ -257,6 +261,12 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	if err != nil {
 		log.Error("CopyTree", err)
 		return
+	}
+
+	// configure any bind mounts from the cli
+	for _, mount := range opts.mounts {
+		build.Mount.Bind(mount, container_path(mount))
+		os.MkdirAll(container_path(mount), 0755)
 	}
 
 	err = c.Prepare(conf, meta)

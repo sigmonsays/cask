@@ -130,6 +130,10 @@ func main_cask() {
 				cli.BoolFlag{
 					Name: "foreground, f",
 				},
+				cli.StringSliceFlag{
+					Name:  "mount, m",
+					Value: &cli.StringSlice{},
+				},
 			},
 			Action: func(c *cli.Context) {
 				cli_launch(c, conf)

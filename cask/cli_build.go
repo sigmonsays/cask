@@ -9,7 +9,6 @@ import (
 	"github.com/sigmonsays/cask/image"
 	"github.com/sigmonsays/cask/metadata"
 	"github.com/sigmonsays/cask/util"
-	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
 	"os"
@@ -245,7 +244,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			os.MkdirAll(newpath, info.Mode())
 			return nil
 		} else if info.Mode().IsRegular() {
-			err = shutil.CopyFile(path, newpath, false)
+			err = util.CopyFile(path, newpath, int(info.Mode()))
 			if err != nil {
 				log.Error("copy file", newpath, err)
 			}
@@ -351,7 +350,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	// copy our cask into the container path next to rootfs
+	// copy our cask files into the container path next to rootfs
 	included_files := []string{
 		"meta.json",
 		"launch",
@@ -388,7 +387,6 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// build a tar archive of the bugger
-
 	archive_info, err := util.TarImage(archive_path, containerpath, opts.verbose)
 	if err != nil {
 		log.Error("tar:", archive_path, err)

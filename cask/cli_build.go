@@ -98,6 +98,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	clone_options := lxc.CloneOptions{
 		Backend:  lxc.Aufs,
 		Snapshot: true,
+		// ConfigPath: conf.StoragePath,
 	}
 	err = runtime.C.Clone(container_name, clone_options)
 	if err != nil {

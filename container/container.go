@@ -121,14 +121,15 @@ func (c *Container) Start() error {
 	// we always need to set the paths so containers are "relocatable" -- that is they can be moved around
 	// on disk and started
 
-	runtimepath := filepath.Join(filepath.Dir(c.path("/")), c.Meta.Runtime, "rootfs")
-	rootfspath := c.path("/rootfs")
-	rootfs := fmt.Sprintf("aufs:%s:%s", runtimepath, rootfspath)
+	/*
+			runtimepath := filepath.Join(filepath.Dir(c.path("/")), c.Meta.Runtime, "rootfs")
+			rootfspath := c.path("/rootfs")
+			rootfs := fmt.Sprintf("aufs:%s:%s", runtimepath, rootfspath)
+		   c.Build.SetConfigItem("lxc.rootfs", rootfs)
+		   c.Build.SetConfigItem("lxc.mount", c.path("/fstab"))
+	*/
 
 	// begin container configuration
-
-	c.Build.SetConfigItem("lxc.rootfs", rootfs)
-	c.Build.SetConfigItem("lxc.mount", c.path("/fstab"))
 
 	configpath := c.path("config")
 	log.Tracef("save config %s", configpath)

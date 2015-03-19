@@ -175,6 +175,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	log.Debug("runtime", meta.Runtime)
 
 	runtimepath := filepath.Join(conf.StoragePath, meta.Runtime)
+	runtimerootfs := filepath.Join(runtimepath, "rootfs")
 	runtime, err := container.NewContainer(runtimepath)
 	if err != nil {
 		log.Errorf("getting runtime container: %s", err)
@@ -213,16 +214,27 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	// specific configuration for this container
 	build.SetConfigItem("lxc.utsname", opts.name)
 
-	rootfs := fmt.Sprintf("aufs:%s/rootfs:%s", runtimepath, rootfspath)
-	build.SetConfigItem("lxc.rootfs", rootfs)
+	// prepare the root file system to use AUFS
+	// fs := container.NewAufsFilesystem(runtimerootfs)
+	// fs.AddLayer(rootfspath)
+
+	// prepare the root file system to use overlayfs
+	fs := container.NewOverlayFilesystem(runtimerootfs)
+	fs.AddLayer(rootfspath)
+	build.FS.SetRoot(fs)
+
+	// prepare mounts
 	build.SetConfigItem("lxc.mount", mountpath)
 
-	post_launch.Add(func() error {
-		attach_options := lxc.DefaultAttachOptions
-		cmd := []string{"ifconfig"}
-		c.C.RunCommand(cmd, attach_options)
-		return nil
-	})
+	/*
+		TODO: add a post_launch set of commands that will be invoked
+			post_launch.Add(func() error {
+				attach_options := lxc.DefaultAttachOptions
+				cmd := []string{"ifconfig"}
+				c.C.RunCommand(cmd, attach_options)
+				return nil
+			})
+	*/
 
 	if c.C.Defined() == false {
 		log.Debug("container", opts.name, "not defined, creating..")

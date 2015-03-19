@@ -26,6 +26,9 @@ type LaunchOptions struct {
 	// do not perform any caching (for downloading)
 	nocache bool
 
+	// do not start the container just create it
+	nostart bool
+
 	// name of the container
 	name string
 
@@ -67,6 +70,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		CommonOptions: GetCommonOptions(ctx),
 		name:          ctx.String("name"),
 		nocache:       ctx.Bool("nocache"),
+		nostart:       ctx.Bool("notart"),
 		foreground:    ctx.Bool("foreground"),
 		mounts:        ctx.StringSlice("mount"),
 		temporary:     ctx.Bool("temporary"),
@@ -291,6 +295,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	err = c.Prepare(conf, meta)
 	if err != nil {
 		log.Errorf("Prepare: %s", err)
+		return
+	}
+
+	if opts.nostart {
 		return
 	}
 

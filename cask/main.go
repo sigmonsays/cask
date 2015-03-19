@@ -137,6 +137,9 @@ func main_cask() {
 				cli.BoolFlag{
 					Name: "temporary, t",
 				},
+				cli.BoolFlag{
+					Name: "nostart",
+				},
 			},
 			Action: func(c *cli.Context) {
 				cli_launch(c, conf)

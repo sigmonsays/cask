@@ -8,7 +8,7 @@ import (
 	"github.com/sigmonsays/cask/container"
 	"github.com/sigmonsays/cask/image"
 	"github.com/sigmonsays/cask/metadata"
-	. "github.com/sigmonsays/cask/util"
+	"github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
 	"io/ioutil"
@@ -76,7 +76,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		opts.runtime = meta.Runtime
 		log.Info("Using runtime from metadata", opts.runtime)
 	} else if opts.runtime == "" {
-		opts.runtime = GetDefaultRuntime()
+		opts.runtime = util.GetDefaultRuntime()
 		log.Info("Using detected runtime from metadata", opts.runtime)
 	}
 
@@ -184,7 +184,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	log.Debug("archive path", archive_path)
 
 	// add our script to the rootfs (temporary, we'll delete later)
-	err = MergeTree(opts.caskpath, caskpath, 0)
+	err = util.MergeTree(opts.caskpath, caskpath, 0)
 	if err != nil {
 		log.Error("MergeTree", opts.caskpath, "to", caskpath, err)
 		return
@@ -223,7 +223,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			return
 		}
 
-		err = UntarImage(image_archive, deltapath, opts.verbose)
+		err = util.UntarImage(image_archive, deltapath, opts.verbose)
 		if err != nil {
 			log.Errorf("Unable to extract image %s: %s", image_archive, err)
 			return
@@ -268,14 +268,14 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 	log.Tracef("cask binary at %s", cask_bin)
 	os.MkdirAll(container_path("/sbin"), 0755)
-	err = CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
+	err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
 	if err != nil {
 		log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
 		return
 	}
 	// TODO: dont hard code
 	lxc_init := "/usr/sbin/init.lxc.static"
-	err = CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
+	err = util.CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
 	if err != nil {
 		log.Error("copy:", err)
 		return
@@ -304,18 +304,21 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// execute bootstrap script now
-	attach_options := lxc.DefaultAttachOptions
-	attach_options.ClearEnv = false
-	cmd := []string{"sh", "-c", "/cask/bootstrap"}
-	exit_code, err := clone.C.RunCommandStatus(cmd, attach_options)
-	if err != nil {
-		log.Error("RunCommand", cmd, err)
-		return
-	}
+	if util.FileExists(container_path("/cask/bootstrap")) {
 
-	if exit_code != 0 {
-		log.Error("bad exit code:", exit_code)
-		return
+		attach_options := lxc.DefaultAttachOptions
+		attach_options.ClearEnv = false
+		cmd := []string{"sh", "-c", "/cask/bootstrap"}
+		exit_code, err := clone.C.RunCommandStatus(cmd, attach_options)
+		if err != nil {
+			log.Error("RunCommand", cmd, err)
+			return
+		}
+
+		if exit_code != 0 {
+			log.Error("bad exit code:", exit_code)
+			return
+		}
 	}
 
 	// remove rootfs/cask path from container
@@ -356,8 +359,8 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 	for _, filename := range included_files {
 		include_file := filepath.Join(opts.caskpath, filename)
-		if FileExists(include_file) {
-			err = MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
+		if util.FileExists(include_file) {
+			err = util.MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
 			if err != nil {
 				log.Error("merge", include_file, err)
 				return
@@ -386,7 +389,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	// build a tar archive of the bugger
 
-	archive_info, err := TarImage(archive_path, containerpath, opts.verbose)
+	archive_info, err := util.TarImage(archive_path, containerpath, opts.verbose)
 	if err != nil {
 		log.Error("tar:", archive_path, err)
 		return

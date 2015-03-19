@@ -273,6 +273,19 @@ func main_cask() {
 				cli_import(c, conf)
 			},
 		},
+		{
+			Name:  "quickstart",
+			Usage: "quickly setup a cask directory template",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "name, n",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				cli_quickstart(c, conf)
+			},
+		},
 	}
 	app.Run(os.Args)
 }

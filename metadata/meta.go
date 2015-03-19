@@ -21,7 +21,7 @@ type Meta struct {
 	DefaultCmd string `json:"default_cmd,omitempty"`
 
 	// Auto start
-	AutoStart AutoStartConfig `json:"auto_start"`
+	AutoStart AutoStartConfig `json:"auto_start,omitempty"`
 
 	// version of the image
 	Version string `json:"version"`
@@ -30,13 +30,13 @@ type Meta struct {
 	Runtime string `json:"runtime"`
 
 	// holds configuration parameters such as lxc.*
-	Lxc map[string][]string `json:"lxc"`
+	Lxc map[string][]string `json:"lxc,omitempty"`
 
 	// misc options
 	Options Options `json:"options"`
 
 	// arbtrary data to be stored with image
-	Data map[string]string `json:"data"`
+	Data map[string]string `json:"data,omitempty"`
 
 	// build paramters for building the image
 	Build BuildParams `json:"build"`
@@ -45,8 +45,8 @@ type Meta struct {
 	Network NetworkConfig `json:"network"`
 
 	// set capabilities
-	CapAdd  []string `json:"cap_add"`
-	CapDrop []string `json:"cap_drop"`
+	CapAdd  []string `json:"cap_add,omitempty"`
+	CapDrop []string `json:"cap_drop,omitempty"`
 
 	// specific mount configuration
 	Mount MountConfig `json:"mount"`
@@ -112,7 +112,7 @@ type NetworkConfig struct {
 }
 
 type MountConfig struct {
-	BindMount []string `json:"bind_mount"`
+	BindMount []string `json:"bind_mount,omitempty"`
 }
 
 type CgroupConfig struct {
@@ -129,14 +129,14 @@ type CpuConfig struct {
 
 type AutoStartConfig struct {
 	// enable autostart
-	Enable bool `json:"enable"`
+	Enable bool `json:"enable,omitempty"`
 
 	// time to wait (seconds) after the container is started before starting the next
-	Delay int `json:"delay"`
+	Delay int `json:"delay,omitempty"`
 
 	// integer sorted to determine startup of containers
-	Order int `json:"order"`
+	Order int `json:"order,omitempty"`
 
 	// groups container belongs to
-	Groups []string `json:"groups"`
+	Groups []string `json:"groups,omitempty"`
 }

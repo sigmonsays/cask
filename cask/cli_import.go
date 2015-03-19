@@ -95,6 +95,7 @@ func cli_import(ctx *cli.Context, conf *config.Config) {
 
 	// configure the basic configuration
 	container.Build.Common()
+	container.Build.SetConfigItem("lxc.rootfs", rootfspath)
 
 	// create the metadata for the image
 	meta := &metadata.Meta{}

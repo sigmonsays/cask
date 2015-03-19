@@ -116,10 +116,11 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	// configure the clone
 	clone.Build.Common()
 
-	// configure the clones rootfs
+	// configure the clones rootfs.
+	// we always use AUFS here so we can have multiple layers. Its not clear if overlayfs supports >2 layers.
 	runtime_rootfs := runtime.Path("rootfs")
 	clone_rootfs := clone.Path("delta")
-	rootfs := container.NewFileSystem(conf, runtime_rootfs)
+	rootfs := container.NewAufsFilesystem(runtime_rootfs)
 
 	veth := container.DefaultVethType()
 	veth.Name = "eth0"
@@ -288,7 +289,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			log.Infof("WARNING did not get ip address from container: %s", err)
 		}
 		for _, ip := range iplist {
-			fmt.Println("ip", ip)
+			log.Infof("%s has ip %s", container_name, ip)
 		}
 	}
 

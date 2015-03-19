@@ -98,8 +98,11 @@ func (m *Meta) WriteFile(path string) error {
 
 type BuildParams struct {
 
-	// other images to include in this build
+	// other images to include in this build (these are mounted as layers)
 	Images []string `json:"images"`
+
+	// other images to extract before the cask/bootstrap is executed
+	ExtractImages []string `json:"extract_images"`
 
 	// glob patterns of files to exclude in the saved image
 	Exclude []string `json:"exclude"`

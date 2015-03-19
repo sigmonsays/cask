@@ -1,12 +1,14 @@
 package container
 
 import (
+	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
 	"strings"
 )
 
 type FilesystemSetter interface {
 	String() string
+	AddLayer(string)
 }
 
 type FilesystemBuilder struct {
@@ -31,6 +33,12 @@ func (b *FilesystemBuilder) SetRoot(fs FilesystemSetter) *FilesystemBuilder {
 	b.c.ClearConfigItem("lxc.rootfs")
 	b.SetConfigItem("lxc.rootfs", fs.String())
 	return b
+}
+
+// creates a new file system depending on host configuration
+func NewFileSystem(conf *config.Config, path string) FilesystemSetter {
+	// TODO: pick backend based on whats available and configuration
+	return NewOverlayFilesystem(path)
 }
 
 // AUFS file system

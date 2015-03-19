@@ -119,13 +119,27 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	// configure the clones rootfs
 	runtime_rootfs := runtime.Path("rootfs")
 	clone_rootfs := clone.Path("delta")
-	rootfs := fmt.Sprintf("aufs:%s:%s", runtime_rootfs, clone_rootfs)
-	clone.Build.SetConfigItem("lxc.rootfs", rootfs)
+	rootfs := container.NewFileSystem(conf, runtime_rootfs)
 
 	veth := container.DefaultVethType()
 	veth.Name = "eth0"
 	veth.Link = conf.Network.Bridge
 	clone.Build.Network.AddInterface(veth)
+
+	// overlay any images for the build context
+	for _, img := range meta.Build.Images {
+		imagepath := filepath.Join(conf.StoragePath, img, "rootfs")
+		if util.FileExists(imagepath) == false {
+			log.Errorf("Unable to find image path %s", imagepath)
+			return
+		}
+		log.Debugf("adding image overlay %s to container", imagepath)
+		rootfs.AddLayer(imagepath)
+	}
+
+	// finish setting up the root file system by adding the final layer
+	rootfs.AddLayer(clone_rootfs)
+	clone.Build.FS.SetRoot(rootfs)
 
 	log.Tracef("save clone config %s", clone.Path("config"))
 	err = clone.C.SaveConfigFile(clone.Path("config"))
@@ -140,32 +154,6 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		}()
 	}
 
-	// parse the rootfs
-	/*
-		rootfs_values := clone.C.ConfigItem("lxc.rootfs")
-		log.Tracef("clone has rootfs values %s", rootfs_values)
-		if len(rootfs_values) == 0 {
-			log.Error("cloned container:", container_name, "has no rootfs")
-			return
-		}
-		if rootfs_values[0] == "" {
-			log.Error("cloned container:", container_name, "has no rootfs")
-			return
-		}
-		rootfs_tmp := strings.Split(rootfs_values[0], ":")
-
-		if len(rootfs_tmp) > 2 {
-			deltapath = rootfs_tmp[2]
-			caskpath = filepath.Join(deltapath, "cask")
-		} else {
-			deltapath = rootfs_values[0]
-			caskrootfs = filepath.Join(opts.caskpath, "rootfs")
-			caskpath = filepath.Join(deltapath, "cask")
-		}
-		log.Tracef("deltapath %s", deltapath)
-		log.Tracef("caskrootfs %s", caskrootfs)
-		log.Tracef("caskpath %s", caskpath)
-	*/
 	deltapath := clone.Path("delta")
 	caskrootfs := filepath.Join(opts.caskpath, "rootfs")
 	caskpath := filepath.Join(deltapath, "cask")
@@ -214,7 +202,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// extract any images from the build
-	for _, img := range meta.Build.Images {
+	for _, img := range meta.Build.ExtractImages {
 		log.Debugf("adding image %s to container", img)
 		image_archive, err := image.LocateImage(conf.StoragePath, img)
 		if err != nil {

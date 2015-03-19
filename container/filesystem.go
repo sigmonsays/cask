@@ -33,6 +33,7 @@ func (b *FilesystemBuilder) SetRoot(fs FilesystemSetter) *FilesystemBuilder {
 	return b
 }
 
+// AUFS file system
 type AufsFilesystem struct {
 	layers []string
 }
@@ -50,4 +51,23 @@ func (fs *AufsFilesystem) AddLayer(path string) {
 }
 func (fs *AufsFilesystem) String() string {
 	return "aufs:" + strings.Join(fs.layers, ":")
+}
+
+// Overlay file system
+type OverlayFilesystem struct {
+	layers []string
+}
+
+func NewOverlayFilesystem(path string) *OverlayFilesystem {
+	fs := &OverlayFilesystem{
+		layers: make([]string, 0),
+	}
+	fs.AddLayer(path)
+	return fs
+}
+func (fs *OverlayFilesystem) AddLayer(path string) {
+	fs.layers = append(fs.layers, path)
+}
+func (fs *OverlayFilesystem) String() string {
+	return "overlayfs:" + strings.Join(fs.layers, ":")
 }

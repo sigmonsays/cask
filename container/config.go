@@ -9,6 +9,7 @@ type ConfigBuilder struct {
 	c       *lxc.Container
 	Network *NetworkBuilder
 	Mount   *MountBuilder
+	FS      *FilesystemBuilder
 	Cgroup  *cgroup.CgroupBuilder
 }
 
@@ -17,6 +18,7 @@ func NewConfigBuilder(c *lxc.Container) *ConfigBuilder {
 		c:       c,
 		Network: NewNetworkBuilder(c),
 		Mount:   NewMountBuilder(c),
+		FS:      NewFilesystemBuilder(c),
 		Cgroup:  cgroup.NewCgroupBuilder(c),
 	}
 }

@@ -265,19 +265,21 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		log.Errorf("cask binary not found: %s", err)
 		return
 	}
-	log.Tracef("cask binary at %s", cask_bin)
-	os.MkdirAll(container_path("/sbin"), 0755)
-	err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
-	if err != nil {
-		log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
-		return
-	}
-	// TODO: dont hard code
-	lxc_init := "/usr/sbin/init.lxc.static"
-	err = util.CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
-	if err != nil {
-		log.Error("copy:", err)
-		return
+	if meta.Options.NoInit == false {
+		log.Tracef("cask binary at %s", cask_bin)
+		os.MkdirAll(container_path("/sbin"), 0755)
+		err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
+		if err != nil {
+			log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
+			return
+		}
+		// TODO: dont hard code
+		lxc_init := "/usr/sbin/init.lxc.static"
+		err = util.CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
+		if err != nil {
+			log.Error("copy:", err)
+			return
+		}
 	}
 
 	// start the container

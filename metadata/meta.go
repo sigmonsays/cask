@@ -108,6 +108,9 @@ type BuildParams struct {
 type Options struct {
 	// setup host mount at /host when container launched
 	HostMount bool `json:"host_mount"`
+
+	// dont include init like lxc-init and cask-init
+	NoInit bool `json:"no_init"`
 }
 
 type NetworkConfig struct {

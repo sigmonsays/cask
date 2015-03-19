@@ -134,6 +134,9 @@ func main_cask() {
 					Name:  "mount, m",
 					Value: &cli.StringSlice{},
 				},
+				cli.BoolFlag{
+					Name: "temporary, t",
+				},
 			},
 			Action: func(c *cli.Context) {
 				cli_launch(c, conf)

@@ -5,6 +5,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
+	"github.com/sigmonsays/cask/image"
 	"github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -33,6 +34,9 @@ type LaunchOptions struct {
 
 	// mounts
 	mounts []string
+
+	// destroy container when it exits
+	temporary bool
 }
 
 type LaunchFunc func() error
@@ -65,6 +69,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		nocache:       ctx.Bool("nocache"),
 		foreground:    ctx.Bool("foreground"),
 		mounts:        ctx.StringSlice("mount"),
+		temporary:     ctx.Bool("temporary"),
 	}
 
 	wait := GetWaitOptions(ctx)
@@ -87,7 +92,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 	var archivepath string
-	if strings.HasPrefix(archive, "http") {
+	if archive[0] == '/' {
+		// its an absolute path
+		archivepath = archive
+	} else if strings.HasPrefix(archive, "http") {
 		_, err := url.Parse(archive)
 		if err != nil {
 			log.Errorf("bad url: %s: %s", archive, err)
@@ -115,7 +123,15 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 			log.Info("downloaded", archive)
 		}
 	} else {
-		archivepath = archive
+		// relative path given to StoragePath
+		image_archive, err := image.LocateImage(conf.StoragePath, archive)
+		if err != nil {
+			log.Errorf("LocateImage: %s: %s", archive, err)
+			return
+		}
+		archivepath = image_archive
+		log.Tracef("found image %s at %s", archive, archivepath)
+
 	}
 
 	log.Info("launch", opts.name, "using", archivepath)
@@ -308,17 +324,24 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err := cmd.Run()
+		exit_code := 0
 		if err != nil {
-			exit_code := 255
+			exit_code = 255
 			if xerr, ok := err.(*exec.ExitError); ok {
 				if status, ok := xerr.Sys().(syscall.WaitStatus); ok {
 					exit_code = status.ExitStatus()
 				}
 			}
-			os.Exit(exit_code)
-			return
 		}
-		os.Exit(0)
+
+		if opts.temporary {
+			err = c.C.Destroy()
+			if err != nil {
+				log.Errorf("destroying temporary container %s: %s", opts.name, err)
+				return
+			}
+		}
+		os.Exit(exit_code)
 	}
 
 	err = c.Start()

@@ -78,6 +78,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	// download the archive over HTTP if its a URL
 	archive := ctx.Args().First()
+	if archive == "" {
+		log.Errorf("archive argument rquired")
+		return
+	}
 	var archivepath string
 	if strings.HasPrefix(archive, "http") {
 		_, err := url.Parse(archive)

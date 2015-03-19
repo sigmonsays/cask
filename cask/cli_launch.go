@@ -234,6 +234,11 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		build.Cgroup.Cpu.Shares(meta.Cgroup.Cpu.Shares)
 	}
 
+	// provision Memory limit
+	if meta.Cgroup.Memory.Limit > 0 {
+		build.Cgroup.Memory.Limit(meta.Cgroup.Memory.Limit)
+	}
+
 	log.Debug("config network")
 	veth := container.DefaultVethType()
 	veth.Link = conf.Network.Bridge

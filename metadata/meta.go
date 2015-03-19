@@ -116,7 +116,8 @@ type MountConfig struct {
 }
 
 type CgroupConfig struct {
-	Cpu CpuConfig `json:"cpu,omitempty"`
+	Cpu    CpuConfig    `json:"cpu,omitempty"`
+	Memory MemoryConfig `json:"memory,omitempty"`
 }
 
 type CpuConfig struct {
@@ -125,6 +126,10 @@ type CpuConfig struct {
 
 	// tie a specific process to given CPUs
 	CPU string `json:"cpu,omitempty"`
+}
+
+type MemoryConfig struct {
+	Limit int `json:"limit"`
 }
 
 type AutoStartConfig struct {

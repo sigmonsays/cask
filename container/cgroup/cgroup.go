@@ -8,6 +8,7 @@ type CgroupBuilder struct {
 	c      *lxc.Container
 	CpuSet *CpuSetBuilder
 	Cpu    *CpuBuilder
+	Memory *MemoryBuilder
 }
 
 func NewCgroupBuilder(c *lxc.Container) *CgroupBuilder {

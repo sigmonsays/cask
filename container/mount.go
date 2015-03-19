@@ -25,7 +25,7 @@ func (b *MountBuilder) SetConfigItem(key, value string) error {
 
 // bind mount a path in the container from the host
 // src is a path on the host
-// dst is a path in the container under its lxc.rootfs
+// dst is a path _relative_ in the container under its lxc.rootfs, ie .Bind("/data", "data")
 func (b *MountBuilder) Bind(src, dst string) *MountBuilder {
 	m := defaultMount()
 	m.Spec = src

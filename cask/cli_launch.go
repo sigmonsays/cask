@@ -265,7 +265,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	// configure any bind mounts from the cli
 	for _, mount := range opts.mounts {
-		build.Mount.Bind(mount, container_path(mount))
+		if len(mount) < 1 {
+			log.Warnf("skipping invalid mount %s", mount)
+		}
+		build.Mount.Bind(mount, mount[1:])
 		os.MkdirAll(container_path(mount), 0755)
 	}
 

@@ -235,7 +235,7 @@ func (c *Container) Prepare(conf *config.Config, meta *metadata.Meta) error {
 		if util.FileExists(path) == false {
 			os.MkdirAll(path, 0755)
 		}
-		build.Mount.Bind(host_mount, path)
+		build.Mount.Bind(host_mount, host_mount[1:])
 	}
 	for _, bind_mount := range meta.Mount.BindMount {
 		log.Debug("adding bind mount", bind_mount)
@@ -246,7 +246,7 @@ func (c *Container) Prepare(conf *config.Config, meta *metadata.Meta) error {
 		if util.FileExists(path) == false {
 			os.MkdirAll(path, 0755)
 		}
-		build.Mount.Bind(bind_mount, path)
+		build.Mount.Bind(bind_mount, bind_mount[1:])
 	}
 
 	// always drop these - "sys_module", "mac_admin", "mac_override", "sys_time",

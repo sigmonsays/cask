@@ -139,9 +139,9 @@ func main_cask() {
 			Name:  "config",
 			Usage: "show container config",
 			Flags: []cli.Flag{
-				cli.StringFlag{
+				cli.StringSliceFlag{
 					Name:  "name, n",
-					Value: "",
+					Value: &cli.StringSlice{},
 				},
 				cli.StringFlag{
 					Name:  "runtime",

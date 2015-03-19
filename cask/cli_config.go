@@ -14,7 +14,7 @@ type ConfigOptions struct {
 	runtime string
 
 	// name of the container
-	name string
+	names []string
 }
 
 func cli_config(c *cli.Context, conf *config.Config) {
@@ -22,10 +22,18 @@ func cli_config(c *cli.Context, conf *config.Config) {
 	opts := &ConfigOptions{
 		CommonOptions: GetCommonOptions(c),
 		runtime:       c.String("runtime"),
-		name:          c.String("name"),
+		names:         c.StringSlice("name"),
 	}
 
-	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
+	for _, name := range opts.names {
+		fmt.Println("")
+		show_container_config(conf, opts, name)
+	}
+}
+
+func show_container_config(conf *config.Config, opts *ConfigOptions, name string) {
+
+	container, err := lxc.NewContainer(name, conf.StoragePath)
 	if err != nil {
 		log.Error("getting container", err)
 		return
@@ -38,7 +46,7 @@ func cli_config(c *cli.Context, conf *config.Config) {
 			if value == "" {
 				continue
 			}
-			fmt.Printf("[container] %s = %s\n", key, value)
+			fmt.Printf("[container.%s] %s = %s\n", name, key, value)
 		}
 	}
 
@@ -56,7 +64,7 @@ func cli_config(c *cli.Context, conf *config.Config) {
 				if value == "" {
 					continue
 				}
-				fmt.Printf("[runtime] %s = %s\n", key, value)
+				fmt.Printf("[runtime.%s] %s = %s\n", name, key, value)
 			}
 		}
 	}

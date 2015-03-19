@@ -115,6 +115,8 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	// configure the clone
 	clone.Build.Common()
+	logfile := clonepath + ".log"
+	clone.Build.Logging(logfile, container.LogTrace)
 
 	// configure the clones rootfs.
 	// we always use AUFS here so we can have multiple layers. Its not clear if overlayfs supports >2 layers.

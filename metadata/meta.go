@@ -81,7 +81,7 @@ func (m *Meta) ReadFile(path string) error {
 }
 
 func (m *Meta) WriteFile(path string) error {
-	buf, err := json.Marshal(m)
+	buf, err := json.MarshalIndent(m, "   ", "   ")
 	if err != nil {
 		return err
 	}

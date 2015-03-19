@@ -328,7 +328,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	// simple file convention for container file system
 	// rename the delta into rootfs, ie LXPATH / NAME / rootfs /
-	// image metadata is at LXPATH / NAME / meta.json
+	// image metadata is at LXPATH / NAME / cask / meta.json
 
 	os.MkdirAll(containerpath, 0644)
 

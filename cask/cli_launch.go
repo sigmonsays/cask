@@ -6,7 +6,6 @@ import (
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
 	"github.com/sigmonsays/cask/container/caps"
-	"github.com/sigmonsays/cask/metadata"
 	"github.com/sigmonsays/cask/util"
 	"github.com/termie/go-shutil"
 	"gopkg.in/lxc/go-lxc.v2"
@@ -23,9 +22,6 @@ import (
 
 type LaunchOptions struct {
 	*CommonOptions
-
-	// runtime name to build image in, ie "ubuntu12"
-	runtime string
 
 	// do not perform any caching (for downloading)
 	nocache bool
@@ -65,7 +61,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		CommonOptions: GetCommonOptions(ctx),
 		name:          ctx.String("name"),
 		nocache:       ctx.Bool("nocache"),
-		runtime:       ctx.String("runtime"),
 		foreground:    ctx.Bool("foreground"),
 	}
 
@@ -167,10 +162,15 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// load the meta
-	meta := metadata.NewMeta(opts.name)
-	err = meta.ReadFile(metadatapath)
+	err = c.LoadMetadata()
 	if err != nil {
-		log.Error("load container meta", opts.name, err)
+		log.Errorf("load container meta: %s: %s", opts.name, err)
+		return
+	}
+	meta := c.Meta
+
+	if meta.Runtime == "" {
+		log.Errorf("runtime can not be empty: %s", opts.name)
 		return
 	}
 	log.Debug("runtime", meta.Runtime)
@@ -389,7 +389,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	err = c.Start()
 	if err != nil {
-		log.Error("container start", opts.name, err)
+		log.Errorf("container start %s: %s", opts.name, err)
 		return
 	}
 

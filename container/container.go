@@ -55,7 +55,7 @@ func (c *Container) Path(path string) string {
 
 func (c *Container) LoadMetadata() error {
 	m := &metadata.Meta{}
-	path := c.path("/meta.json")
+	path := c.Path("/cask/meta.json")
 	log.Tracef("read metadata %s", path)
 	err := m.ReadFile(path)
 	if err != nil {

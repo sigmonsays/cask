@@ -16,10 +16,10 @@ func NewMemoryBuilder(c *lxc.Container) *MemoryBuilder {
 }
 
 func (b *MemoryBuilder) SetConfigItem(key, value string) error {
-	log.Debugf("SetConfig %s = %s", key, value)
+	log.Debugf("%s = %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("SetConfig %s = %s: %s", key, value, err)
+		log.Warnf("%s = %s: %s", key, value, err)
 	}
 	return err
 }

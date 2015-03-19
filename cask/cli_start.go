@@ -29,6 +29,7 @@ func cli_start(ctx *cli.Context, conf *config.Config) {
 	}
 
 	containerpath := filepath.Join(conf.StoragePath, opts.name)
+	logfile := containerpath + ".log"
 
 	c, err := container.NewContainer(containerpath)
 	if err != nil {
@@ -43,6 +44,10 @@ func cli_start(ctx *cli.Context, conf *config.Config) {
 	}
 
 	c.Build.Common()
+	c.Build.Logging(logfile, container.LogTrace)
+
+	runtimerootfs := filepath.Join(conf.StoragePath, c.Meta.Runtime, "rootfs")
+	c.Build.RootFilesystem(runtimerootfs, c.Path("/rootfs"))
 
 	err = c.Prepare(conf, c.Meta)
 	if err != nil {

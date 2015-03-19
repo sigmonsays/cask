@@ -15,10 +15,10 @@ func NewMountBuilder(c *lxc.Container) *MountBuilder {
 	}
 }
 func (b *MountBuilder) SetConfigItem(key, value string) error {
-	log.Debugf("SetConfig %s = %s", key, value)
+	log.Debugf("%s = %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("SetConfig %s = %s: %s", key, value, err)
+		log.Warnf("%s = %s: %s", key, value, err)
 	}
 	return err
 }

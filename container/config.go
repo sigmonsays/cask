@@ -24,10 +24,10 @@ func NewConfigBuilder(c *lxc.Container) *ConfigBuilder {
 }
 
 func (b *ConfigBuilder) SetConfigItem(key, value string) *ConfigBuilder {
-	log.Tracef("SetConfigItem %s %s", key, value)
+	log.Tracef("%s = %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("SetConfigItem %s = %s: %s", key, value, err)
+		log.Warnf("%s = %s: %s", key, value, err)
 	}
 	return b
 }
@@ -57,5 +57,25 @@ func (b *ConfigBuilder) Common() *ConfigBuilder {
 	for k, v := range params {
 		b.SetConfigItem(k, v)
 	}
+	return b
+}
+func (b *ConfigBuilder) Logging(logfile, loglevel string) *ConfigBuilder {
+	b.SetConfigItem("lxc.loglevel", loglevel)
+	b.SetConfigItem("lxc.logfile", logfile)
+	return b
+}
+
+func (b *ConfigBuilder) RootFilesystem(runtimerootfs, rootfspath string) *ConfigBuilder {
+	// TODO: select best implementation on the fly
+
+	// prepare the root file system to use AUFS
+	// fs := NewAufsFilesystem(runtimerootfs)
+	// fs.AddLayer(rootfspath)
+
+	// prepare the root file system to use overlayfs
+	fs := NewOverlayFilesystem(runtimerootfs)
+	fs.AddLayer(rootfspath)
+	b.FS.SetRoot(fs)
+
 	return b
 }

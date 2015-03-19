@@ -20,10 +20,10 @@ func NewCgroupBuilder(c *lxc.Container) *CgroupBuilder {
 }
 
 func (b *CgroupBuilder) SetConfigItem(key, value string) *CgroupBuilder {
-	log.Debugf("SetConfigItem %s %s", key, value)
+	log.Debugf("%s = %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("SetConfigItem %s = %s: %s", key, value, err)
+		log.Warnf("%s = %s: %s", key, value, err)
 	}
 	return b
 }

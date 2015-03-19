@@ -120,7 +120,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	rootfspath := filepath.Join(containerpath, "rootfs")
 	hostnamepath := filepath.Join(rootfspath, "etc/hostname")
 	mountpath := filepath.Join(containerpath, "fstab")
-
 	container_path := func(subpath string) string {
 		return filepath.Join(rootfspath, subpath[1:])
 	}
@@ -191,14 +190,12 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	// begin container configuration
 	build.Common()
+	c.Build.Logging(logfile, container.LogTrace)
 
-	// os.MkdirAll(container_path("/proc"), 0755)
+	os.MkdirAll(container_path("/proc"), 0755)
 	os.MkdirAll(container_path("/sys/fs/cgroup"), 0755)
 	os.MkdirAll(container_path("/dev/pts"), 0755)
 	os.MkdirAll(container_path("/dev/shm"), 0755)
-
-	build.SetConfigItem("lxc.loglevel", container.LogTrace)
-	build.SetConfigItem("lxc.logfile", logfile)
 
 	os.MkdirAll(filepath.Dir(mountpath), 0755)
 
@@ -214,14 +211,8 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	// specific configuration for this container
 	build.SetConfigItem("lxc.utsname", opts.name)
 
-	// prepare the root file system to use AUFS
-	// fs := container.NewAufsFilesystem(runtimerootfs)
-	// fs.AddLayer(rootfspath)
-
-	// prepare the root file system to use overlayfs
-	fs := container.NewOverlayFilesystem(runtimerootfs)
-	fs.AddLayer(rootfspath)
-	build.FS.SetRoot(fs)
+	// setup root file system
+	build.RootFilesystem(runtimerootfs, rootfspath)
 
 	// prepare mounts
 	build.SetConfigItem("lxc.mount", mountpath)

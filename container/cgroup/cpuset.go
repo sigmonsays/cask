@@ -15,10 +15,10 @@ func NewCpuSetBuilder(c *lxc.Container) *CpuSetBuilder {
 }
 
 func (b *CpuSetBuilder) SetConfigItem(key, value string) *CpuSetBuilder {
-	log.Tracef("SetConfigItem %s %s", key, value)
+	log.Tracef("%s %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("SetConfigItem %s = %s: %s", key, value, err)
+		log.Warnf("%s = %s: %s", key, value, err)
 	}
 	return b
 }

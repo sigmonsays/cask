@@ -122,7 +122,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	logfile := filepath.Join(conf.StoragePath, opts.name) + ".log"
 	caskpath := filepath.Join(containerpath, "cask")
 	configpath := filepath.Join(containerpath, "config")
-	metadatapath := filepath.Join(containerpath, "meta.json")
+	metadatapath := filepath.Join(caskpath, "meta.json")
 	rootfspath := filepath.Join(containerpath, "rootfs")
 	hostnamepath := filepath.Join(rootfspath, "etc/hostname")
 	mountpath := filepath.Join(containerpath, "fstab")
@@ -190,6 +190,13 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// begin container configuration
+	build.Common()
+
+	// os.MkdirAll(container_path("/proc"), 0755)
+	os.MkdirAll(container_path("/sys/fs/cgroup"), 0755)
+	os.MkdirAll(container_path("/dev/pts"), 0755)
+	os.MkdirAll(container_path("/dev/shm"), 0755)
+
 	build.SetConfigItem("lxc.loglevel", container.LogTrace)
 	build.SetConfigItem("lxc.logfile", logfile)
 
@@ -207,7 +214,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	// specific configuration for this container
 	build.SetConfigItem("lxc.utsname", opts.name)
 
-	rootfs := fmt.Sprintf("aufs:%s:%s", runtimepath, rootfspath)
+	rootfs := fmt.Sprintf("aufs:%s/rootfs:%s", runtimepath, rootfspath)
 	build.SetConfigItem("lxc.rootfs", rootfs)
 	build.SetConfigItem("lxc.mount", mountpath)
 
@@ -355,7 +362,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		args := []string{
 			"--rcfile", configpath,
 			"--name", c.C.Name(),
-			"--lxcpath", filepath.Join(c.C.ConfigPath(), c.C.Name()),
+			"--lxcpath", c.C.ConfigPath(),
 			"--logpriority", "DEBUG",
 			"--logfile", logfile,
 			"--",

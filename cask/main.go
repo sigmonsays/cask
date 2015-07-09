@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"time"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/sup"
 	gologging "github.com/sigmonsays/go-logging"
 	"gopkg.in/lxc/go-lxc.v2"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 func WarnIf(err error) {
@@ -91,6 +94,7 @@ func main_cask() {
 
 		return nil
 	}
+
 	app.Commands = []cli.Command{
 		{
 			Name:  "build",
@@ -109,7 +113,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_build(c, conf)
+				run_cli(c, conf, cli_build)
 			},
 		},
 		{
@@ -142,7 +146,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_launch(c, conf)
+				run_cli(c, conf, cli_launch)
 			},
 		},
 		{
@@ -159,7 +163,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_config(c, conf)
+				run_cli(c, conf, cli_config)
 			},
 		},
 		{
@@ -180,7 +184,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_list(c, conf)
+				run_cli(c, conf, cli_list)
 			},
 		},
 		{
@@ -197,7 +201,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_start(c, conf)
+				run_cli(c, conf, cli_start)
 			},
 		},
 		{
@@ -210,7 +214,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_stop(c, conf)
+				run_cli(c, conf, cli_stop)
 			},
 		},
 		{
@@ -223,14 +227,14 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_destroy(c, conf)
+				run_cli(c, conf, cli_destroy)
 			},
 		},
 		{
 			Name:  "info",
 			Usage: "show generic info",
 			Action: func(c *cli.Context) {
-				cli_info(c, conf)
+				run_cli(c, conf, cli_info)
 			},
 		},
 		{
@@ -263,7 +267,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_attach(c, conf)
+				run_cli(c, conf, cli_attach)
 			},
 		},
 		{
@@ -280,7 +284,7 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_import(c, conf)
+				run_cli(c, conf, cli_import)
 			},
 		},
 		{
@@ -293,9 +297,40 @@ func main_cask() {
 				},
 			},
 			Action: func(c *cli.Context) {
-				cli_quickstart(c, conf)
+				run_cli(c, conf, cli_quickstart)
 			},
 		},
 	}
+
 	app.Run(os.Args)
+
+}
+
+type CliFunc func(c *cli.Context, conf *config.Config)
+
+func run_cli(c *cli.Context, conf *config.Config, fn CliFunc) {
+	if conf.Sudo {
+		current_user, err := user.Current()
+		if err == nil {
+			if current_user.Uid != "0" {
+				sudo := "sudo"
+				log.Tracef("exec %v %v", sudo, os.Args)
+				cmd := exec.Command(sudo, os.Args...)
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				err = cmd.Run()
+				rc := 0
+				if err != nil {
+					rc = 1
+				}
+				os.Exit(rc)
+
+			}
+		} else {
+			fmt.Println("current user: error getting current user:", err.Error())
+		}
+	}
+
+	fn(c, conf)
 }

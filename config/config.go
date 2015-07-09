@@ -19,6 +19,9 @@ type Config struct {
 
 	// hypervisor network configuration
 	Network NetworkConfig
+
+	// whether we use sudo to gain root
+	Sudo bool
 }
 
 type NetworkConfig struct {

@@ -7,7 +7,7 @@ import (
 	"gopkg.in/lxc/go-lxc.v2"
 )
 
-type ConfigOptions struct {
+type LxcConfigOptions struct {
 	*CommonOptions
 
 	// runtime name to build image in, ie "ubuntu12"
@@ -17,9 +17,9 @@ type ConfigOptions struct {
 	names []string
 }
 
-func cli_config(c *cli.Context, conf *config.Config) {
+func cli_lxc_config(c *cli.Context, conf *config.Config) {
 
-	opts := &ConfigOptions{
+	opts := &LxcConfigOptions{
 		CommonOptions: GetCommonOptions(c),
 		runtime:       c.String("runtime"),
 		names:         c.StringSlice("name"),
@@ -27,11 +27,11 @@ func cli_config(c *cli.Context, conf *config.Config) {
 
 	for _, name := range opts.names {
 		fmt.Println("")
-		show_container_config(conf, opts, name)
+		show_container_lxc_config(conf, opts, name)
 	}
 }
 
-func show_container_config(conf *config.Config, opts *ConfigOptions, name string) {
+func show_container_lxc_config(conf *config.Config, opts *LxcConfigOptions, name string) {
 
 	container, err := lxc.NewContainer(name, conf.StoragePath)
 	if err != nil {

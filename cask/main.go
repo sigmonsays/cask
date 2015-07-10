@@ -117,6 +117,23 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "config",
+			Usage: "manage container config",
+			Flags: []cli.Flag{
+				cli.StringSliceFlag{
+					Name:  "name, n",
+					Value: &cli.StringSlice{},
+				},
+				cli.StringFlag{
+					Name:  "runtime",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_config)
+			},
+		},
+		{
 			Name:  "launch",
 			Usage: "launch a image as a new container",
 			Flags: []cli.Flag{
@@ -167,7 +184,7 @@ func main_cask() {
 						},
 					},
 					Action: func(c *cli.Context) {
-						run_cli(c, conf, cli_config)
+						run_cli(c, conf, cli_lxc_config)
 					},
 				},
 			},

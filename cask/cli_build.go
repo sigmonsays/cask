@@ -29,6 +29,15 @@ type BuildOptions struct {
 	keep_container bool
 }
 
+type BuildContext struct {
+	Root  string
+	Clone *container.Container
+}
+
+func (bctx *BuildContext) ContainerPath(subpath string) string {
+	return filepath.Join(bctx.Root, subpath[1:])
+}
+
 func monitor() *exec.Cmd {
 	cmd := exec.Command("lxc-monitor")
 	cmd.Stdout = os.Stdout
@@ -183,9 +192,14 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	container_path := func(subpath string) string {
 		return filepath.Join(deltapath, subpath[1:])
 	}
+	bctx := &BuildContext{
+		Root:  deltapath,
+		Clone: clone,
+	}
 
 	os.MkdirAll(container_path("/cask/bin"), 0544)
 	os.MkdirAll(filepath.Join(containerpath, "cask"), 0755)
+	os.MkdirAll(filepath.Join(containerpath, "cask/task"), 0755)
 
 	// set the configuration in metadata from the runtime
 	keys := runtime.C.ConfigKeys()
@@ -295,6 +309,9 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		}
 	}
 
+	// pre tasks
+	processTasks(ctx, conf, bctx, meta.Build.PreTasks)
+
 	// execute bootstrap script now
 	if util.FileExists(container_path("/cask/bootstrap")) {
 
@@ -312,6 +329,9 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			return
 		}
 	}
+
+	// run post tasks
+	processTasks(ctx, conf, bctx, meta.Build.PostTasks)
 
 	// remove rootfs/cask path from container
 	os.RemoveAll(caskpath)
@@ -387,4 +407,43 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	fmt.Printf("created archive %s, %s\n", archive_path, util.HumanSize(uint64(archive_info.Size())))
+}
+
+func processTasks(ctx *cli.Context, conf *config.Config, bctx *BuildContext, tasks []string) error {
+	clone := bctx.Clone
+
+	// process image post tasks
+	for _, task := range tasks {
+		log.Infof("task %s", task)
+		host_script_path := filepath.Join(conf.TaskPath, task)
+		script_path := fmt.Sprintf("/cask/task/%s", task)
+		container_script_path := bctx.ContainerPath(script_path)
+		log.Tracef("copy %s -> %s", host_script_path, container_script_path)
+
+		err := os.MkdirAll(filepath.Dir(container_script_path), 0755)
+		if err != nil {
+			log.Errorf("[task %s] mkdir %s: %s", task, filepath.Dir(container_script_path), err)
+			continue
+		}
+		err = util.CopyFile(host_script_path, container_script_path, 0755)
+		if err != nil {
+			log.Errorf("[task %s] copy %s", task, err)
+			continue
+		}
+
+		attach_options := lxc.DefaultAttachOptions
+		attach_options.ClearEnv = false
+		cmd := []string{"sh", "-c", script_path}
+		exit_code, err := clone.C.RunCommandStatus(cmd, attach_options)
+		if err != nil {
+			log.Error("RunCommand", cmd, err)
+			continue
+		}
+
+		if exit_code != 0 {
+			log.Error("bad exit code:", exit_code)
+			continue
+		}
+	}
+	return nil
 }

@@ -106,6 +106,10 @@ type BuildParams struct {
 
 	// glob patterns of files to exclude in the saved image
 	Exclude []string `json:"exclude"`
+
+	// tasks to run in the newly built container
+	PostTasks []string `json:"post_tasks"`
+	PreTasks  []string `json:"pre_tasks"`
 }
 
 type Options struct {

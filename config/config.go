@@ -17,6 +17,9 @@ type Config struct {
 	// where to store everything on disk by default
 	StoragePath string
 
+	// where tasks are stored
+	TaskPath string
+
 	// hypervisor network configuration
 	Network NetworkConfig
 

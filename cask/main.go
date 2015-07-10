@@ -150,20 +150,26 @@ func main_cask() {
 			},
 		},
 		{
-			Name:  "config",
-			Usage: "show container config",
-			Flags: []cli.Flag{
-				cli.StringSliceFlag{
-					Name:  "name, n",
-					Value: &cli.StringSlice{},
+			Name:  "lxc",
+			Usage: "lxc related commands",
+			Subcommands: []cli.Command{
+				{
+					Name:  "config",
+					Usage: "show container config",
+					Flags: []cli.Flag{
+						cli.StringSliceFlag{
+							Name:  "name, n",
+							Value: &cli.StringSlice{},
+						},
+						cli.StringFlag{
+							Name:  "runtime",
+							Value: "",
+						},
+					},
+					Action: func(c *cli.Context) {
+						run_cli(c, conf, cli_config)
+					},
 				},
-				cli.StringFlag{
-					Name:  "runtime",
-					Value: "",
-				},
-			},
-			Action: func(c *cli.Context) {
-				run_cli(c, conf, cli_config)
 			},
 		},
 		{

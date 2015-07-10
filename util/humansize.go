@@ -24,7 +24,7 @@ var (
 	NumSuffix = len(SuffixList)
 )
 
-func HumanSize(size uint64) string {
+func FormatSize(size uint64) string {
 	var n int
 	var unit uint64
 	var unit_name string
@@ -44,5 +44,8 @@ func HumanSize(size uint64) string {
 	v := float64(size) / float64(unit)
 
 	return fmt.Sprintf("%.2f%s", v, unit_name)
+}
 
+func HumanSize(size uint64) string {
+	return fmt.Sprintf("%s (%d bytes)", FormatSize(size), size)
 }

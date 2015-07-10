@@ -386,5 +386,5 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	fmt.Printf("created archive %s, %d bytes\n", archive_path, archive_info.Size())
+	fmt.Printf("created archive %s, %s\n", archive_path, util.HumanSize(uint64(archive_info.Size())))
 }

@@ -16,7 +16,7 @@ type QuickstartOptions struct {
 func cli_quickstart(ctx *cli.Context, conf *config.Config) {
 	opts := &QuickstartOptions{
 		CommonOptions: GetCommonOptions(ctx),
-		name:          ctx.String("name"),
+		name:          ctx.Args().First(),
 	}
 	if opts.name == "" {
 		opts.name = "example"

@@ -10,37 +10,39 @@ import (
 type StartOptions struct {
 	*CommonOptions
 
-	// name of the container
-	name string
+	// names of the container
+	names []string
 }
 
 func cli_start(ctx *cli.Context, conf *config.Config) {
 
 	opts := &StartOptions{
 		CommonOptions: GetCommonOptions(ctx),
-		name:          ctx.String("name"),
+		names:         ctx.Args(),
 	}
 
+	for _, name := range opts.names {
+		start_container(ctx, conf, name)
+	}
+
+}
+
+func start_container(ctx *cli.Context, conf *config.Config, name string) error {
 	wait := GetWaitOptions(ctx)
 
-	if opts.name == "" {
-		log.Error("container name required")
-		return
-	}
-
-	containerpath := filepath.Join(conf.StoragePath, opts.name)
+	containerpath := filepath.Join(conf.StoragePath, name)
 	logfile := containerpath + ".log"
 
 	c, err := container.NewContainer(containerpath)
 	if err != nil {
-		log.Error("getting container", opts.name, err)
-		return
+		log.Error("getting container", name, err)
+		return err
 	}
 
 	c.LoadMetadata()
 	if err != nil {
-		log.Error("load container meta", opts.name, err)
-		return
+		log.Error("load container meta", name, err)
+		return err
 	}
 
 	c.Build.Common()
@@ -52,19 +54,19 @@ func cli_start(ctx *cli.Context, conf *config.Config) {
 	err = c.Prepare(conf, c.Meta)
 	if err != nil {
 		log.Errorf("Prepare: %s", err)
-		return
+		return err
 	}
 
 	err = c.Start()
 	if err != nil {
-		log.Error("container start", opts.name, err)
-		return
+		log.Error("container start", name, err)
+		return err
 	}
 
 	err = c.WaitStart(wait)
 	if err != nil {
-		log.Error("container wait start", opts.name, err)
-		return
+		log.Error("container wait start", name, err)
+		return err
 	}
-
+	return err
 }

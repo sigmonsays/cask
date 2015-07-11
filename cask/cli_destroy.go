@@ -9,24 +9,30 @@ import (
 type DestroyOptions struct {
 	*CommonOptions
 
-	// name of the container
-	name string
+	names []string
 }
 
 func cli_destroy(c *cli.Context, conf *config.Config) {
 
 	opts := &DestroyOptions{
 		CommonOptions: GetCommonOptions(c),
-		name:          c.String("name"),
+		names:         c.Args(),
 	}
 
-	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
+	for _, name := range opts.names {
+		destroy_container(c, conf, name)
+	}
+
+}
+
+func destroy_container(c *cli.Context, conf *config.Config, name string) error {
+	container, err := lxc.NewContainer(name, conf.StoragePath)
 	if err != nil {
-		log.Error("getting container", opts.name, err)
-		return
+		log.Error("getting container", name, err)
+		return err
 	}
 
-	log.Info(opts.name, "is", container.State())
+	log.Info(name, "is", container.State())
 
 	if container.State() == lxc.RUNNING {
 		container.Stop()
@@ -34,7 +40,8 @@ func cli_destroy(c *cli.Context, conf *config.Config) {
 
 	err = container.Destroy()
 	if err != nil {
-		log.Error("stopping container", opts.name, err)
-		return
+		log.Error("stopping container", name, err)
+		return err
 	}
+	return nil
 }

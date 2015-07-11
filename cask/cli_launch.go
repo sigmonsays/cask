@@ -68,7 +68,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	opts := &LaunchOptions{
 		CommonOptions: GetCommonOptions(ctx),
-		name:          ctx.String("name"),
+		name:          ctx.Args().Get(1),
 		nocache:       ctx.Bool("nocache"),
 		nostart:       ctx.Bool("notart"),
 		foreground:    ctx.Bool("foreground"),

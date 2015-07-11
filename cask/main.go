@@ -120,10 +120,6 @@ func main_cask() {
 			Name:  "config",
 			Usage: "manage container config",
 			Flags: []cli.Flag{
-				cli.StringSliceFlag{
-					Name:  "name, n",
-					Value: &cli.StringSlice{},
-				},
 				cli.StringFlag{
 					Name:  "runtime",
 					Value: "",
@@ -137,10 +133,6 @@ func main_cask() {
 			Name:  "launch",
 			Usage: "launch a image as a new container",
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
 				cli.StringFlag{
 					Name:  "runtime",
 					Value: "",
@@ -174,10 +166,6 @@ func main_cask() {
 					Name:  "config",
 					Usage: "show container config",
 					Flags: []cli.Flag{
-						cli.StringSliceFlag{
-							Name:  "name, n",
-							Value: &cli.StringSlice{},
-						},
 						cli.StringFlag{
 							Name:  "runtime",
 							Value: "",
@@ -195,10 +183,6 @@ func main_cask() {
 			Usage:     "list containers",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-				cli.StringFlag{
 					Name:  "runtime",
 					Value: "",
 				},
@@ -215,10 +199,6 @@ func main_cask() {
 			Usage: "start a container",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-				cli.StringFlag{
 					Name:  "runtime, r",
 					Value: "",
 				},
@@ -230,12 +210,7 @@ func main_cask() {
 		{
 			Name:  "stop",
 			Usage: "stop a container",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-			},
+			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) {
 				run_cli(c, conf, cli_stop)
 			},
@@ -243,12 +218,7 @@ func main_cask() {
 		{
 			Name:  "destroy",
 			Usage: "delete a container",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-			},
+			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) {
 				run_cli(c, conf, cli_destroy)
 			},
@@ -264,10 +234,6 @@ func main_cask() {
 			Name:  "attach",
 			Usage: "atach to running container",
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
 				cli.StringFlag{
 					Name:  "namespaces",
 					Value: "",
@@ -298,10 +264,6 @@ func main_cask() {
 			Usage: "import a image",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-				cli.StringFlag{
 					Name:  "bootstrap",
 					Value: "",
 				},
@@ -313,12 +275,7 @@ func main_cask() {
 		{
 			Name:  "quickstart",
 			Usage: "quickly setup a cask directory template",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Value: "",
-				},
-			},
+			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) {
 				run_cli(c, conf, cli_quickstart)
 			},

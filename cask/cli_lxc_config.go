@@ -22,7 +22,7 @@ func cli_lxc_config(c *cli.Context, conf *config.Config) {
 	opts := &LxcConfigOptions{
 		CommonOptions: GetCommonOptions(c),
 		runtime:       c.String("runtime"),
-		names:         c.StringSlice("name"),
+		names:         c.Args(),
 	}
 
 	for _, name := range opts.names {

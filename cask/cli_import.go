@@ -26,12 +26,12 @@ type ImportOptions struct {
 	bootstrap string
 }
 
-func cli_import(ctx *cli.Context, conf *config.Config) {
+func cli_import(c *cli.Context, conf *config.Config) {
 
 	opts := &ImportOptions{
-		CommonOptions: GetCommonOptions(ctx),
-		name:          ctx.String("name"),
-		bootstrap:     ctx.String("bootstrap"),
+		CommonOptions: GetCommonOptions(c),
+		name:          c.Args().First(),
+		bootstrap:     c.String("bootstrap"),
 	}
 
 	if opts.name == "" {
@@ -39,7 +39,7 @@ func cli_import(ctx *cli.Context, conf *config.Config) {
 		return
 	}
 
-	importpath := ctx.Args().First()
+	importpath := c.Args().Get(2)
 	if importpath == "" {
 		log.Errorf("import path is required")
 		return

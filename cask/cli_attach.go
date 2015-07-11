@@ -38,8 +38,8 @@ var namespace_names = map[string]int{
 func cli_attach(c *cli.Context, conf *config.Config) {
 
 	opts := &AttachOptions{
+		name:          c.Args().First(),
 		CommonOptions: GetCommonOptions(c),
-		name:          c.String("name"),
 		namespaces:    c.String("namespaces"),
 		cwd:           c.String("cwd"),
 		uid:           c.Int("uid"),

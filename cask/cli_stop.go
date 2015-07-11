@@ -10,31 +10,38 @@ type StopOptions struct {
 	*CommonOptions
 
 	// name of the container
-	name string
+	names []string
 }
 
-func cli_stop(c *cli.Context, conf *config.Config) {
+func cli_stop(ctx *cli.Context, conf *config.Config) {
 
-	opts := &StartOptions{
-		CommonOptions: GetCommonOptions(c),
-		name:          c.String("name"),
+	opts := &StopOptions{
+		CommonOptions: GetCommonOptions(ctx),
+		names:         ctx.Args(),
 	}
 
-	if opts.name == "" {
-		log.Error("container name required")
+	if len(opts.names) == 0 {
+		log.Error("one container name required")
 		return
 	}
 
-	container, err := lxc.NewContainer(opts.name, conf.StoragePath)
+	for _, name := range opts.names {
+		stop_container(ctx, conf, name)
+	}
+}
+
+func stop_container(ctx *cli.Context, conf *config.Config, name string) error {
+	container, err := lxc.NewContainer(name, conf.StoragePath)
 	if err != nil {
-		log.Error("getting container", opts.name, err)
-		return
+		log.Error("getting container", name, err)
+		return err
 	}
 
-	log.Info(opts.name, "is", container.State())
+	log.Info(name, "is", container.State())
 	err = container.Stop()
 	if err != nil {
 		log.Error("stopping container", err)
-		return
+		return err
 	}
+	return nil
 }

@@ -15,9 +15,6 @@ type ListOptions struct {
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
 
-	// name of the container
-	name string
-
 	// show all containers (ie, include stopped)
 	all bool
 }
@@ -26,7 +23,6 @@ func cli_list(c *cli.Context, conf *config.Config) {
 
 	opts := &ListOptions{
 		CommonOptions: GetCommonOptions(c),
-		name:          c.String("name"),
 		runtime:       c.String("runtime"),
 		all:           c.Bool("all"),
 	}

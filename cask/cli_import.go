@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
 	"github.com/sigmonsays/cask/metadata"
 	"github.com/sigmonsays/cask/util"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 type ImportOptions struct {
@@ -18,6 +20,9 @@ type ImportOptions struct {
 
 	// name of the container
 	name string
+
+	// architecture
+	arch string
 
 	// temporary container name used for import
 	tmp_name string
@@ -32,6 +37,7 @@ func cli_import(c *cli.Context, conf *config.Config) {
 		CommonOptions: GetCommonOptions(c),
 		name:          c.Args().First(),
 		bootstrap:     c.String("bootstrap"),
+		arch:          runtime.GOARCH,
 	}
 
 	if opts.name == "" {
@@ -60,13 +66,19 @@ func cli_import(c *cli.Context, conf *config.Config) {
 		release := bootstrap[1]
 
 		cmdline := []string{
+			"lxc-create",
 			"-t", "download",
 			"-n", opts.name,
 			"--",
 			"-d", distribution,
 			"-r", release,
+			"-a", opts.arch,
 		}
 		cmd := exec.Command(cmdline[0], cmdline[1:]...)
+		if opts.verbose {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		}
 		err := cmd.Run()
 		if err != nil {
 			log.Error("cmd:", cmdline, err)

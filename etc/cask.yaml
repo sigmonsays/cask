@@ -1,0 +1,10 @@
+# cask configuration file
+#
+#storagepath: /var/lib/cask
+
+sudo: true
+storagepath: /opt/cask
+taskpath: /opt/cask/tasks
+network:
+   bridge: lxcbr0
+

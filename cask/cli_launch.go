@@ -64,11 +64,12 @@ func (l *LaunchFunctions) Execute() error {
 	return err
 }
 
+// cask launch [container name] [directory_or_image.tar.gz]
 func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	opts := &LaunchOptions{
 		CommonOptions: GetCommonOptions(ctx),
-		name:          ctx.Args().First(),
+		name:          ctx.Args().Get(0),
 		nocache:       ctx.Bool("nocache"),
 		nostart:       ctx.Bool("notart"),
 		foreground:    ctx.Bool("foreground"),
@@ -90,7 +91,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	post_launch := NewLaunchFunctions()
 
 	// download the archive over HTTP if its a URL
-	archive := ctx.Args().First()
+	archive := ctx.Args().Get(1)
 	if archive == "" {
 		log.Errorf("archive argument rquired")
 		return

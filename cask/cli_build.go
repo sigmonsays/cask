@@ -57,6 +57,10 @@ func cli_build(c *cli.Context, conf *config.Config) {
 	cmd.Wait()
 }
 
+func build_step(s string, args ...interface{}) {
+	log.Infof("build_step %s", fmt.Sprintf(s, args...))
+}
+
 func build_image(ctx *cli.Context, conf *config.Config) {
 
 	opts := &BuildOptions{
@@ -139,6 +143,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	clone.Build.Network.AddInterface(veth)
 
 	// overlay any images for the build context
+	build_step("overlay images")
 	for _, img := range meta.Build.Images {
 		imagepath := filepath.Join(conf.StoragePath, img, "rootfs")
 		if util.FileExists(imagepath) == false {
@@ -183,6 +188,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	log.Debug("archive path", archive_path)
 
 	// add our script to the rootfs (temporary, we'll delete later)
+	build_step("merge cask tree")
 	err = util.MergeTree(opts.caskpath, caskpath, 0)
 	if err != nil {
 		log.Error("MergeTree", opts.caskpath, "to", caskpath, err)
@@ -219,6 +225,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// extract any images from the build
+	build_step("extract images")
 	for _, img := range meta.Build.ExtractImages {
 		log.Debugf("adding image %s to container", img)
 		image_archive, err := image.LocateImage(conf.StoragePath, img)
@@ -235,6 +242,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// walk the rootfs dir and add all the files into the destination rootfs
+	build_step("add rootfs")
 	offset := len(caskrootfs)
 	log.Debug("copy rootfs", caskrootfs)
 	newpath := ""
@@ -288,6 +296,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// start the container
+	build_step("start container")
 	err = clone.C.Start()
 	if err != nil {
 		log.Error("starting cloned container:", err)
@@ -310,9 +319,11 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// pre tasks
+	build_step("pre tasks")
 	processTasks(ctx, conf, bctx, meta.Build.PreTasks)
 
 	// execute bootstrap script now
+	build_step("cask bootstrap")
 	if util.FileExists(container_path("/cask/bootstrap")) {
 
 		attach_options := lxc.DefaultAttachOptions
@@ -331,6 +342,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// run post tasks
+	build_step("post tasks")
 	processTasks(ctx, conf, bctx, meta.Build.PostTasks)
 
 	// remove rootfs/cask path from container
@@ -364,6 +376,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// copy our cask files into the container path next to rootfs
+	build_step("copy includes")
 	included_files := []string{
 		"meta.json",
 		"launch",
@@ -383,6 +396,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	os.Mkdir(deltapath, 0644)
 
 	// process image exclusions
+	build_step("process excludes")
 	for _, exclude := range meta.Build.Exclude {
 		log.Tracef("processing image exclusion %s for container path %s", exclude, containerpath)
 		matches, err := filepath.Glob(containerpath + "/rootfs/" + exclude)
@@ -400,6 +414,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	}
 
 	// build a tar archive of the bugger
+	build_step("archive image")
 	archive_info, err := util.TarImage(archive_path, containerpath, opts.verbose)
 	if err != nil {
 		log.Error("tar:", archive_path, err)

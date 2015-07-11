@@ -348,6 +348,8 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	// remove rootfs/cask path from container
 	os.RemoveAll(caskpath)
 
+	build_step("stop container")
+
 	err = clone.C.Stop()
 	if err != nil {
 		log.Error("stop", err)

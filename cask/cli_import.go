@@ -39,12 +39,12 @@ func cli_import(c *cli.Context, conf *config.Config) {
 		return
 	}
 
-	importpath := c.Args().Get(2)
+	importpath := c.Args().Get(1)
 	if importpath == "" {
 		log.Errorf("import path is required")
 		return
 	}
-	log.Infof("importing rootfs from %s", importpath)
+	log.Infof("importing %s rootfs from %s", opts.name, importpath)
 
 	opts.tmp_name = fmt.Sprintf("%s-%d", opts.name, os.Getpid())
 

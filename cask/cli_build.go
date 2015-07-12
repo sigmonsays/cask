@@ -3,6 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
@@ -10,10 +15,6 @@ import (
 	"github.com/sigmonsays/cask/metadata"
 	"github.com/sigmonsays/cask/util"
 	"gopkg.in/lxc/go-lxc.v2"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
 )
 
 type BuildOptions struct {
@@ -304,10 +305,12 @@ func build_image(ctx *cli.Context, conf *config.Config) error {
 	if meta.Options.NoInit == false {
 		log.Tracef("cask binary at %s", cask_bin)
 		os.MkdirAll(container_path("/sbin"), 0755)
-		err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
-		if err != nil {
-			log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
-			return err
+		if util.FileExists(container_path("/sbin/cask-init")) == false {
+			err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
+			if err != nil {
+				log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
+				return err
+			}
 		}
 		// TODO: dont hard code
 		lxc_init := "/usr/sbin/init.lxc.static"

@@ -28,6 +28,7 @@ type Config struct {
 }
 
 type NetworkConfig struct {
+	Mode   string
 	Bridge string
 }
 

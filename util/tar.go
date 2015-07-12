@@ -19,19 +19,20 @@ type TarOptions struct {
 func UntarImage(archive, containerpath string, opts *TarOptions) error {
 	log.Infof("extracting %s in %s", archive, containerpath)
 	os.MkdirAll(containerpath, 0755)
-	tar_flags := []string{"-vzxf"}
+	tar_flags := []string{"-vzxf", archive}
 	if opts.Verbose == false {
-		tar_flags = []string{"-zxf"}
+		tar_flags = []string{"-zxf", archive}
 	}
 	if opts.StripComponents > 0 {
 		tar_flags = append(tar_flags, fmt.Sprintf("--strip-components=%d", opts.StripComponents))
 	}
 	cmdline := []string{"tar"}
 	cmdline = append(cmdline, tar_flags...)
-	cmdline = append(cmdline, archive)
+	cmdline = append(cmdline)
 	if opts.Path != "" {
 		cmdline = append(cmdline, opts.Path)
 	}
+	log.Debugf("untar command %s", cmdline)
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

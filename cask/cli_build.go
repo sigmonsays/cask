@@ -83,16 +83,12 @@ func build_image(ctx *cli.Context, conf *config.Config) error {
 	metadatapath_yaml := filepath.Join(opts.caskpath, "meta.yaml")
 
 	meta := &metadata.Meta{}
+	original_meta := &metadata.Meta{}
 
 	if util.FileExists(metadatapath_yaml) {
 		err := meta.ReadYamlFile(metadatapath_yaml)
 		if err != nil {
 			log.Error("meta read yaml file:", err)
-			return err
-		}
-		err = meta.WriteFile(metadatapath_json)
-		if err != nil {
-			log.Error("meta write json file:", err)
 			return err
 		}
 	} else {
@@ -102,6 +98,7 @@ func build_image(ctx *cli.Context, conf *config.Config) error {
 			return err
 		}
 	}
+	*original_meta = *meta
 
 	if len(opts.runtime) == 0 && len(meta.Runtime) > 0 {
 		opts.runtime = meta.Runtime
@@ -405,8 +402,13 @@ func build_image(ctx *cli.Context, conf *config.Config) error {
 
 	// copy our cask files into the container path next to rootfs
 	build_step("copy includes")
+
+	err = original_meta.WriteFile(filepath.Join(containerpath, "cask/meta.json"))
+	if err != nil {
+		log.Error("meta write json file:", err)
+		return err
+	}
 	included_files := []string{
-		"meta.json",
 		"launch",
 		"bootstrap",
 	}

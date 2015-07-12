@@ -18,6 +18,9 @@ type ConfigOptions struct {
 	// runtime name to build image in, ie "ubuntu12"
 	runtime string
 
+	// print yaml
+	yaml bool
+
 	// name of the container
 	names []string
 }
@@ -28,6 +31,7 @@ func cli_config(c *cli.Context, conf *config.Config) {
 		CommonOptions: GetCommonOptions(c),
 		runtime:       c.String("runtime"),
 		names:         c.Args(),
+		yaml:          c.Bool("yaml"),
 	}
 
 	for _, name := range opts.names {
@@ -37,7 +41,6 @@ func cli_config(c *cli.Context, conf *config.Config) {
 }
 
 func show_container_config(conf *config.Config, opts *ConfigOptions, name string) {
-	print_yaml := false
 
 	containerpath := filepath.Join(conf.StoragePath, name)
 
@@ -53,15 +56,16 @@ func show_container_config(conf *config.Config, opts *ConfigOptions, name string
 		return
 	}
 
-	if print_yaml {
+	if opts.yaml {
 		blob, err := goyaml.Marshal(c.Meta)
 		if err != nil {
 			log.Error("yaml marshal meta", name, err)
 			return
 		}
 		fmt.Printf("%s", blob)
-
+		return
 	}
+
 	// output json
 	blob, err := json.MarshalIndent(c.Meta, "", "   ")
 	if err != nil {

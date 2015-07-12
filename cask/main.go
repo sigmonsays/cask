@@ -124,6 +124,9 @@ func main_cask() {
 					Name:  "runtime",
 					Value: "",
 				},
+				cli.BoolFlag{
+					Name: "yaml, y",
+				},
 			},
 			Action: func(c *cli.Context) {
 				run_cli(c, conf, cli_config)

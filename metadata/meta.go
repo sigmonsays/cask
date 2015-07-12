@@ -20,10 +20,10 @@ type Meta struct {
 	Name string `json:"name"`
 
 	// Default command to execute (optional)
-	DefaultCmd string `json:"default_cmd,omitempty"`
+	DefaultCmd string `json:"default_cmd,omitempty" yaml:"default_cmd"`
 
 	// Auto start
-	AutoStart AutoStartConfig `json:"auto_start,omitempty"`
+	AutoStart AutoStartConfig `json:"auto_start,omitempty" yaml:"auto_start"`
 
 	// version of the image
 	Version string `json:"version"`
@@ -50,8 +50,8 @@ type Meta struct {
 	Network NetworkConfig `json:"network"`
 
 	// set capabilities
-	CapAdd  []string `json:"cap_add,omitempty"`
-	CapDrop []string `json:"cap_drop,omitempty"`
+	CapAdd  []string `json:"cap_add,omitempty" yaml:"cap_add"`
+	CapDrop []string `json:"cap_drop,omitempty" yaml:"cap_drop"`
 
 	// specific mount configuration
 	Mount MountConfig `json:"mount"`
@@ -117,22 +117,22 @@ type BuildParams struct {
 	Images []string `json:"images"`
 
 	// other images to extract before the cask/bootstrap is executed
-	ExtractImages []string `json:"extract_images"`
+	ExtractImages []string `json:"extract_images" yaml:"extract_images"`
 
 	// glob patterns of files to exclude in the saved image
 	Exclude []string `json:"exclude"`
 
 	// tasks to run in the newly built container
-	PostTasks []string `json:"post_tasks"`
-	PreTasks  []string `json:"pre_tasks"`
+	PostTasks []string `json:"post_tasks" yaml:"post_tasks"`
+	PreTasks  []string `json:"pre_tasks" yaml:"pre_tasks"`
 }
 
 type Options struct {
 	// setup host mount at /host when container launched
-	HostMount bool `json:"host_mount"`
+	HostMount bool `json:"host_mount" yaml:"host_mount"`
 
 	// dont include init like lxc-init and cask-init
-	NoInit bool `json:"no_init"`
+	NoInit bool `json:"no_init" yaml:"no_init"`
 }
 
 type NetworkConfig struct {
@@ -140,7 +140,7 @@ type NetworkConfig struct {
 }
 
 type MountConfig struct {
-	BindMount []string `json:"bind_mount,omitempty"`
+	BindMount []string `json:"bind_mount,omitempty" yaml:"bind_mount"`
 }
 
 type CgroupConfig struct {

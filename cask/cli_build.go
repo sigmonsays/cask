@@ -86,6 +86,11 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			log.Error("meta read yaml file:", err)
 			return
 		}
+		err = meta.WriteFile(metadatapath_json)
+		if err != nil {
+			log.Error("meta write json file:", err)
+			return
+		}
 	} else {
 		err := meta.ReadJsonFile(metadatapath_json)
 		if err != nil {

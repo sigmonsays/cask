@@ -182,7 +182,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		c.C.Destroy()
 	}
 
-	err = util.UntarImage(archivepath, containerpath, opts.verbose)
+	topts := &util.TarOptions{
+		Verbose: opts.verbose,
+	}
+	err = util.UntarImage(archivepath, containerpath, topts)
 	if err != nil {
 		log.Errorf("UntarImage (in %s): %s\n", containerpath, err)
 		return

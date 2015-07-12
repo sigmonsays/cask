@@ -154,9 +154,12 @@ func cli_import(c *cli.Context, conf *config.Config) {
 	}
 
 	// create the archive
+	topts := &util.TarOptions{
+		Verbose: opts.verbose,
+	}
 	archivepath := filepath.Join(container.C.ConfigPath(), opts.name) + ".tar.gz"
 	log.Debugf("Creating %s", archivepath)
-	archive_info, err := util.TarImage(archivepath, containerpath, opts.verbose)
+	archive_info, err := util.TarImage(archivepath, containerpath, topts)
 	if err != nil {
 		log.Error("tar:", archivepath, err)
 		return

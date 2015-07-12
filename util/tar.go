@@ -5,14 +5,24 @@ import (
 	"os/exec"
 )
 
-func UntarImage(archive, containerpath string, verbose bool) error {
+type TarOptions struct {
+	Verbose bool
+
+	// for UntarImage, specific path to extract from archive
+	Path string
+}
+
+func UntarImage(archive, containerpath string, opts *TarOptions) error {
 	log.Infof("extracting %s in %s", archive, containerpath)
 	os.MkdirAll(containerpath, 0755)
 	tar_flag := "-vzxf"
-	if verbose == false {
+	if opts.Verbose == false {
 		tar_flag = "-zxf"
 	}
 	cmdline := []string{"tar", tar_flag, archive}
+	if opts.Path != "" {
+		cmdline = append(cmdline, opts.Path)
+	}
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -25,9 +35,9 @@ func UntarImage(archive, containerpath string, verbose bool) error {
 	return err
 }
 
-func TarImage(archive, containerpath string, verbose bool) (os.FileInfo, error) {
+func TarImage(archive, containerpath string, opts *TarOptions) (os.FileInfo, error) {
 	tar_flags := "zcf"
-	if verbose {
+	if opts.Verbose {
 		tar_flags = "vzcf"
 	}
 

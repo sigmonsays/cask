@@ -249,7 +249,11 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			return
 		}
 
-		err = util.UntarImage(image_archive, deltapath, opts.verbose)
+		topts := &util.TarOptions{
+			Verbose: opts.verbose,
+			Path:    "rootfs",
+		}
+		err = util.UntarImage(image_archive, deltapath, topts)
 		if err != nil {
 			log.Errorf("Unable to extract image %s: %s", image_archive, err)
 			return
@@ -432,7 +436,10 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 
 	// build a tar archive of the bugger
 	build_step("archive image")
-	archive_info, err := util.TarImage(archive_path, containerpath, opts.verbose)
+	topts := &util.TarOptions{
+		Verbose: opts.verbose,
+	}
+	archive_info, err := util.TarImage(archive_path, containerpath, topts)
 	if err != nil {
 		log.Error("tar:", archive_path, err)
 		return

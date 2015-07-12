@@ -52,16 +52,19 @@ func monitor() *exec.Cmd {
 
 func cli_build(c *cli.Context, conf *config.Config) {
 	cmd := monitor()
-	build_image(c, conf)
+	err := build_image(c, conf)
 	cmd.Process.Signal(os.Interrupt)
 	cmd.Wait()
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func build_step(s string, args ...interface{}) {
 	log.Infof("build_step %s", fmt.Sprintf(s, args...))
 }
 
-func build_image(ctx *cli.Context, conf *config.Config) {
+func build_image(ctx *cli.Context, conf *config.Config) error {
 
 	opts := &BuildOptions{
 		CommonOptions:  GetCommonOptions(ctx),
@@ -84,18 +87,18 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		err := meta.ReadYamlFile(metadatapath_yaml)
 		if err != nil {
 			log.Error("meta read yaml file:", err)
-			return
+			return err
 		}
 		err = meta.WriteFile(metadatapath_json)
 		if err != nil {
 			log.Error("meta write json file:", err)
-			return
+			return err
 		}
 	} else {
 		err := meta.ReadJsonFile(metadatapath_json)
 		if err != nil {
 			log.Error("meta read json file:", err)
-			return
+			return err
 		}
 	}
 
@@ -112,12 +115,12 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	runtime, err := container.NewContainer(runtime_containerpath)
 	if err != nil {
 		log.Error("creating runtime:", err)
-		return
+		return err
 	}
 	err = runtime.C.LoadConfigFile(runtime.Path("config"))
 	if err != nil {
 		log.Error("runtime load config:", err)
-		return
+		return err
 	}
 
 	container_name := fmt.Sprintf("build-%d", os.Getpid())
@@ -130,7 +133,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = runtime.C.Clone(container_name, clone_options)
 	if err != nil {
 		log.Error("clone:", err)
-		return
+		return err
 	}
 
 	// get the clone
@@ -138,7 +141,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	clone, err := container.NewContainer(clonepath)
 	if err != nil {
 		log.Error("NewContainer:", err)
-		return
+		return err
 	}
 
 	// configure the clone
@@ -163,7 +166,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		imagepath := filepath.Join(conf.StoragePath, img, "rootfs")
 		if util.FileExists(imagepath) == false {
 			log.Errorf("Unable to find image path %s", imagepath)
-			return
+			return err
 		}
 		log.Debugf("adding image overlay %s to container", imagepath)
 		rootfs.AddLayer(imagepath)
@@ -177,7 +180,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = clone.C.SaveConfigFile(clone.Path("config"))
 	if err != nil {
 		log.Errorf("SaveConfigFile: %s: %s", clone.Path("config"), err)
-		return
+		return err
 	}
 
 	if opts.keep_container == false {
@@ -207,7 +210,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = util.MergeTree(opts.caskpath, caskpath, 0)
 	if err != nil {
 		log.Error("MergeTree", opts.caskpath, "to", caskpath, err)
-		return
+		return err
 	}
 
 	container_path := func(subpath string) string {
@@ -246,17 +249,18 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		image_archive, err := image.LocateImage(conf.StoragePath, img)
 		if err != nil {
 			log.Errorf("Unable to locate image %s: %s", img, err)
-			return
+			return err
 		}
 
 		topts := &util.TarOptions{
-			Verbose: opts.verbose,
-			Path:    "rootfs",
+			Verbose:         opts.verbose,
+			Path:            "rootfs",
+			StripComponents: 1,
 		}
 		err = util.UntarImage(image_archive, deltapath, topts)
 		if err != nil {
 			log.Errorf("Unable to extract image %s: %s", image_archive, err)
-			return
+			return err
 		}
 	}
 
@@ -288,14 +292,14 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = filepath.Walk(caskrootfs, walkfn)
 	if err != nil {
 		log.Error("walk:", err)
-		return
+		return err
 	}
 
 	// copy the cask binary in the container
 	cask_bin, err := findSelf()
 	if err != nil {
 		log.Errorf("cask binary not found: %s", err)
-		return
+		return err
 	}
 	if meta.Options.NoInit == false {
 		log.Tracef("cask binary at %s", cask_bin)
@@ -303,14 +307,14 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		err = util.CopyFile(cask_bin, container_path("/sbin/cask-init"), 0755)
 		if err != nil {
 			log.Errorf("copy %s -> %s: %s", cask_bin, container_path("/sbin/cask-init"), err)
-			return
+			return err
 		}
 		// TODO: dont hard code
 		lxc_init := "/usr/sbin/init.lxc.static"
 		err = util.CopyFile(lxc_init, container_path("/sbin/lxc-init"), 0755)
 		if err != nil {
 			log.Error("copy:", err)
-			return
+			return err
 		}
 	}
 
@@ -319,7 +323,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = clone.C.Start()
 	if err != nil {
 		log.Error("starting cloned container:", err)
-		return
+		return err
 	}
 
 	log.Tracef("Waiting for RUNNING state..")
@@ -351,12 +355,12 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 		exit_code, err := clone.C.RunCommandStatus(cmd, attach_options)
 		if err != nil {
 			log.Error("RunCommand", cmd, err)
-			return
+			return err
 		}
 
 		if exit_code != 0 {
 			log.Error("bad exit code:", exit_code)
-			return
+			return err
 		}
 	}
 
@@ -384,7 +388,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	new_meta_blob, err := json.MarshalIndent(meta, "", "   ")
 	if err != nil {
 		log.Error("marshal", err)
-		return
+		return err
 	}
 
 	ioutil.WriteFile(metadata_path, new_meta_blob, 0422)
@@ -393,7 +397,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	err = os.Rename(deltapath, rootfs_dir)
 	if err != nil {
 		log.Error("Rename:", err)
-		return
+		return err
 	}
 
 	// copy our cask files into the container path next to rootfs
@@ -409,7 +413,7 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 			err = util.MergeTree(include_file, filepath.Join(containerpath, "cask", filename), 0)
 			if err != nil {
 				log.Error("merge", include_file, err)
-				return
+				return err
 			}
 		}
 	}
@@ -442,10 +446,11 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	archive_info, err := util.TarImage(archive_path, containerpath, topts)
 	if err != nil {
 		log.Error("tar:", archive_path, err)
-		return
+		return err
 	}
 
 	fmt.Printf("created archive %s, %s\n", archive_path, util.HumanSize(uint64(archive_info.Size())))
+	return nil
 }
 
 func processTasks(ctx *cli.Context, conf *config.Config, bctx *BuildContext, tasks []string) error {

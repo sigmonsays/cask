@@ -1,12 +1,16 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 )
 
 type TarOptions struct {
 	Verbose bool
+
+	// strip
+	StripComponents int
 
 	// for UntarImage, specific path to extract from archive
 	Path string
@@ -15,11 +19,16 @@ type TarOptions struct {
 func UntarImage(archive, containerpath string, opts *TarOptions) error {
 	log.Infof("extracting %s in %s", archive, containerpath)
 	os.MkdirAll(containerpath, 0755)
-	tar_flag := "-vzxf"
+	tar_flags := []string{"-vzxf"}
 	if opts.Verbose == false {
-		tar_flag = "-zxf"
+		tar_flags = []string{"-zxf"}
 	}
-	cmdline := []string{"tar", tar_flag, archive}
+	if opts.StripComponents > 0 {
+		tar_flags = append(tar_flags, fmt.Sprintf("--strip-components=%d", opts.StripComponents))
+	}
+	cmdline := []string{"tar"}
+	cmdline = append(cmdline, tar_flags...)
+	cmdline = append(cmdline, archive)
 	if opts.Path != "" {
 		cmdline = append(cmdline, opts.Path)
 	}

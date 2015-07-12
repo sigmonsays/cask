@@ -75,13 +75,23 @@ func build_image(ctx *cli.Context, conf *config.Config) {
 	log.Info("cask build runtime", opts.runtime)
 	log.Info("cask path", opts.caskpath)
 
-	metadatapath := filepath.Join(opts.caskpath, "meta.json")
+	metadatapath_json := filepath.Join(opts.caskpath, "meta.json")
+	metadatapath_yaml := filepath.Join(opts.caskpath, "meta.yaml")
 
 	meta := &metadata.Meta{}
-	err := meta.ReadFile(metadatapath)
-	if err != nil {
-		log.Error("meta ReadFile:", err)
-		return
+
+	if util.FileExists(metadatapath_yaml) {
+		err := meta.ReadYamlFile(metadatapath_yaml)
+		if err != nil {
+			log.Error("meta read yaml file:", err)
+			return
+		}
+	} else {
+		err := meta.ReadJsonFile(metadatapath_json)
+		if err != nil {
+			log.Error("meta read json file:", err)
+			return
+		}
 	}
 
 	if len(opts.runtime) == 0 && len(meta.Runtime) > 0 {

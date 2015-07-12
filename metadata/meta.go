@@ -3,6 +3,8 @@ package metadata
 import (
 	"encoding/json"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 func NewMeta(name string) *Meta {
@@ -69,7 +71,20 @@ func (m *Meta) SetConfigItem(key, value string) error {
 	return nil
 }
 
-func (m *Meta) ReadFile(path string) error {
+func (m *Meta) ReadYamlFile(path string) error {
+	meta_blob, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(meta_blob, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Meta) ReadJsonFile(path string) error {
 	meta_blob, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err

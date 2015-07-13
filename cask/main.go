@@ -263,6 +263,35 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "exec",
+			Usage: "execute command in running container",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "namespaces",
+					Value: "",
+				},
+				cli.StringFlag{
+					Name:  "cwd",
+					Value: "",
+				},
+				cli.IntFlag{
+					Name: "uid",
+				},
+				cli.IntFlag{
+					Name: "gid",
+				},
+				cli.BoolFlag{
+					Name: "clear-env",
+				},
+				cli.BoolFlag{
+					Name: "keep-env",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_exec)
+			},
+		},
+		{
 			Name:  "import",
 			Usage: "import a image",
 			Flags: []cli.Flag{

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
-	"gopkg.in/lxc/go-lxc.v2"
+	"github.com/sigmonsays/cask/container"
 )
 
 type StopOptions struct {
@@ -31,14 +34,21 @@ func cli_stop(ctx *cli.Context, conf *config.Config) {
 }
 
 func stop_container(ctx *cli.Context, conf *config.Config, name string) error {
-	container, err := lxc.NewContainer(name, conf.StoragePath)
+	containerpath := filepath.Join(conf.StoragePath, name)
+
+	container, err := container.NewContainer(containerpath)
 	if err != nil {
 		log.Error("getting container", name, err)
 		return err
 	}
 
-	log.Info(name, "is", container.State())
-	err = container.Stop()
+	if container.C.Defined() == false {
+		log.Error("container not defined", name)
+		return fmt.Errorf("container not defined")
+	}
+
+	log.Info(name, "is", container.C.State())
+	err = container.C.Stop()
 	if err != nil {
 		log.Error("stopping container", err)
 		return err

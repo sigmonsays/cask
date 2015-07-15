@@ -56,6 +56,11 @@ func cli_import(c *cli.Context, conf *config.Config) {
 
 	if len(opts.bootstrap) > 0 {
 
+		lxc_containerpath := fmt.Sprintf("/var/lib/lxc/%s", opts.name)
+		if container, err := container.NewContainer(lxc_containerpath); err == nil {
+			container.C.Destroy()
+		}
+
 		bootstrap := strings.Split(opts.bootstrap, ".")
 		if len(bootstrap) < 2 {
 			log.Error("bootstrap must be in the format of DISTRIBUTION.RELEASE")

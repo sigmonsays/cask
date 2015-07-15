@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"github.com/sigmonsays/cask/container"
-	"path/filepath"
 )
 
 type StartOptions struct {
@@ -37,6 +39,11 @@ func start_container(ctx *cli.Context, conf *config.Config, name string) error {
 	if err != nil {
 		log.Error("getting container", name, err)
 		return err
+	}
+
+	if c.C.Defined() == false {
+		log.Error("container not defined", name)
+		return fmt.Errorf("container not defined")
 	}
 
 	c.LoadMetadata()

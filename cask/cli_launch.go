@@ -359,6 +359,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	err = c.Start()
 	if err != nil {
 		log.Errorf("container start %s: %s", opts.name, err)
+		log.Errorf("check log %s for details", logfile)
 		return
 	}
 

@@ -67,6 +67,7 @@ func start_container(ctx *cli.Context, conf *config.Config, name string) error {
 	err = c.Start()
 	if err != nil {
 		log.Error("container start", name, err)
+		log.Errorf("check log %s for details", logfile)
 		return err
 	}
 

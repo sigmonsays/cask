@@ -219,6 +219,22 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "freeze",
+			Usage: "freeze a container",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_freeze)
+			},
+		},
+		{
+			Name:  "unfreeze",
+			Usage: "unfreeze a container",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_unfreeze)
+			},
+		},
+		{
 			Name:  "destroy",
 			Usage: "delete a container",
 			Flags: []cli.Flag{},

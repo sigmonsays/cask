@@ -1,11 +1,12 @@
 package main
 
 import (
+	"strings"
+	"syscall"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
 	"gopkg.in/lxc/go-lxc.v2"
-	"strings"
-	"syscall"
 )
 
 type AttachOptions struct {

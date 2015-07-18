@@ -313,6 +313,35 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "checkpoint",
+			Usage: "checkpoint a container state to directory",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "directory, d",
+					Value: "",
+				},
+				cli.BoolFlag{
+					Name: "stop, s",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_checkpoint)
+			},
+		},
+		{
+			Name:  "restore",
+			Usage: "resrore a container state from directory",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "directory, d",
+					Value: "",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_restore)
+			},
+		},
+		{
 			Name:  "exec",
 			Usage: "execute command in running container",
 			Flags: []cli.Flag{

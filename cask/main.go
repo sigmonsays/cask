@@ -265,6 +265,18 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "rename",
+			Usage: "rename a container",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name: "force, f",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_rename)
+			},
+		},
+		{
 			Name:  "info",
 			Usage: "show generic info",
 			Action: func(c *cli.Context) {

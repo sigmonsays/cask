@@ -246,10 +246,10 @@ func main_cask() {
 					Value: "",
 				},
 				cli.IntFlag{
-					Name: "uid",
+					Name: "uid, u",
 				},
 				cli.IntFlag{
-					Name: "gid",
+					Name: "gid, g",
 				},
 				cli.BoolFlag{
 					Name: "clear-env",

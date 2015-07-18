@@ -219,6 +219,28 @@ func main_cask() {
 			},
 		},
 		{
+			Name:  "reboot",
+			Usage: "reboot a container",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_reboot)
+			},
+		},
+		{
+			Name:  "shutdown",
+			Usage: "shutdown a container",
+			Flags: []cli.Flag{
+				cli.DurationFlag{
+					Name:  "timeout, t",
+					Value: time.Duration(20) * time.Second,
+					Usage: "how long to wait for container to shutdown",
+				},
+			},
+			Action: func(c *cli.Context) {
+				run_cli(c, conf, cli_shutdown)
+			},
+		},
+		{
 			Name:  "freeze",
 			Usage: "freeze a container",
 			Flags: []cli.Flag{},

@@ -83,6 +83,11 @@ func (c *Container) mergeConfig() error {
 	// merge lxc config in from metadata
 	for key, values := range c.Meta.Lxc {
 
+		if key == "lxc.rootfs" {
+			// skip setting the rootfs since we control that ourselves
+			continue
+		}
+
 		if key == "lxc.network" {
 			// work around for network configuration not being set properly
 			continue

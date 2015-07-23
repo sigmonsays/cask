@@ -272,6 +272,8 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	// setup root file system
 	// build.RootFilesystem(runtimerootfs, rootfspath)
+	c.C.ClearConfigItem("lxc.rootfs")
+
 	rootfs := container.NewAufsFilesystem(runtimerootfs)
 	rootfs.AddLayer(rootfspath)
 	build.FS.SetRoot(rootfs)
@@ -327,6 +329,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		os.MkdirAll(container_path(mount), 0755)
 	}
 
+	log.Infof("Preparing configuration and metadata for container")
 	err = c.Prepare(conf, meta)
 	if err != nil {
 		log.Errorf("Prepare: %s", err)
@@ -334,10 +337,12 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	}
 
 	if opts.nostart {
+		log.Infof("not starting container, finished")
 		return
 	}
 
 	if opts.foreground {
+		log.Infof("starting in foreground")
 		// cmdline is what we execute
 		var cmdline []string
 		if len(ctx.Args()) > 1 {
@@ -387,6 +392,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		os.Exit(exit_code)
 	}
 
+	log.Infof("starting container")
 	err = c.Start()
 	if err != nil {
 		log.Errorf("container start %s: %s", opts.name, err)

@@ -21,10 +21,10 @@ func NewFilesystemBuilder(c *lxc.Container) *FilesystemBuilder {
 	}
 }
 func (b *FilesystemBuilder) SetConfigItem(key, value string) error {
-	log.Debugf("%s = %s", key, value)
+	log.Debugf("SetConfigItem %s = %s", key, value)
 	err := b.c.SetConfigItem(key, value)
 	if err != nil {
-		log.Warnf("%s = %s: %s", key, value, err)
+		log.Warnf("SetConfigItem %s = %s: %s", key, value, err)
 	}
 	return err
 }
@@ -32,6 +32,7 @@ func (b *FilesystemBuilder) SetConfigItem(key, value string) error {
 func (b *FilesystemBuilder) SetRoot(fs FilesystemSetter) *FilesystemBuilder {
 	b.c.ClearConfigItem("lxc.rootfs")
 	b.SetConfigItem("lxc.rootfs", fs.String())
+	log.Tracef("SetRoot %s", fs.String())
 	return b
 }
 

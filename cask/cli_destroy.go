@@ -1,8 +1,12 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/codegangsta/cli"
 	"github.com/sigmonsays/cask/config"
+	"github.com/sigmonsays/cask/container"
 	"gopkg.in/lxc/go-lxc.v2"
 )
 
@@ -25,23 +29,33 @@ func cli_destroy(c *cli.Context, conf *config.Config) {
 
 }
 
-func destroy_container(c *cli.Context, conf *config.Config, name string) error {
-	container, err := lxc.NewContainer(name, conf.StoragePath)
+func destroy_container(ctx *cli.Context, conf *config.Config, name string) error {
+	containerpath := filepath.Join(conf.StoragePath, name)
+
+	c, err := container.NewContainer(containerpath)
 	if err != nil {
 		log.Error("getting container", name, err)
 		return err
 	}
 
-	log.Info(name, "is", container.State())
+	log.Info(name, "is", c.C.State())
 
-	if container.State() == lxc.RUNNING {
-		container.Stop()
+	if c.C.State() == lxc.RUNNING {
+		c.C.Stop()
 	}
 
-	err = container.Destroy()
+	err = os.RemoveAll(containerpath)
 	if err != nil {
-		log.Error("stopping container", name, err)
-		return err
+		log.Warnf("RemoveAll %s: %s", containerpath, err)
 	}
+
+	/*
+		// This destroys referenced rootfs so we shouldn't use it
+		err = container.Destroy()
+		if err != nil {
+			log.Error("stopping container", name, err)
+			return err
+		}
+	*/
 	return nil
 }

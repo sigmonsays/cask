@@ -57,9 +57,8 @@ func (c *Container) Path(path string) string {
 	return c.path(path)
 }
 
-func (c *Container) LoadMetadata() error {
+func (c *Container) LoadMetadataFromPath(path string) error {
 	m := &metadata.Meta{}
-	path := c.Path("/cask/meta.json")
 	log.Tracef("read metadata %s", path)
 	err := m.ReadJsonFile(path)
 	if err != nil {
@@ -69,6 +68,11 @@ func (c *Container) LoadMetadata() error {
 	log.Tracef("meta %+v", m)
 	c.Meta = m
 	return nil
+}
+
+func (c *Container) LoadMetadata() error {
+	path := c.Path("/cask/meta.json")
+	return c.LoadMetadataFromPath(path)
 }
 
 func (c *Container) mergeConfig() error {

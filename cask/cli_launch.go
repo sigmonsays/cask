@@ -2,13 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
-	"github.com/sigmonsays/cask/config"
-	"github.com/sigmonsays/cask/container"
-	"github.com/sigmonsays/cask/image"
-	"github.com/sigmonsays/cask/util"
-	"github.com/termie/go-shutil"
-	"gopkg.in/lxc/go-lxc.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +11,14 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/codegangsta/cli"
+	"github.com/sigmonsays/cask/config"
+	"github.com/sigmonsays/cask/container"
+	"github.com/sigmonsays/cask/image"
+	"github.com/sigmonsays/cask/util"
+	"github.com/termie/go-shutil"
+	"gopkg.in/lxc/go-lxc.v2"
 )
 
 type LaunchOptions struct {
@@ -29,8 +30,11 @@ type LaunchOptions struct {
 	// do not start the container just create it
 	nostart bool
 
-	// name of the container
+	// name of the new container
 	name string
+
+	// name of the archive
+	runtime string
 
 	// keep application in foreground
 	foreground bool
@@ -70,11 +74,13 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	opts := &LaunchOptions{
 		CommonOptions: GetCommonOptions(ctx),
 		name:          ctx.Args().Get(0),
-		nocache:       ctx.Bool("nocache"),
-		nostart:       ctx.Bool("notart"),
-		foreground:    ctx.Bool("foreground"),
-		mounts:        ctx.StringSlice("mount"),
-		temporary:     ctx.Bool("temporary"),
+		runtime:       ctx.Args().Get(1),
+
+		nocache:    ctx.Bool("nocache"),
+		nostart:    ctx.Bool("notart"),
+		foreground: ctx.Bool("foreground"),
+		mounts:     ctx.StringSlice("mount"),
+		temporary:  ctx.Bool("temporary"),
 	}
 
 	wait := GetWaitOptions(ctx)
@@ -82,21 +88,18 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	if opts.name == "" {
 		opts.name = fmt.Sprintf("container-%d", os.Getpid())
 	}
-	if len(os.Args) < 3 {
-		log.Error("Need archive path")
+
+	// download the archive over HTTP if its a URL
+	if opts.runtime == "" {
+		log.Errorf("runtime argument rquired")
 		return
 	}
 
 	// used to execute commands after the container has started
 	post_launch := NewLaunchFunctions()
 
-	// download the archive over HTTP if its a URL
-	archive := ctx.Args().Get(1)
-	if archive == "" {
-		log.Errorf("archive argument rquired")
-		return
-	}
 	var archivepath string
+	archive := opts.runtime
 	if archive[0] == '/' {
 		// its an absolute path
 		archivepath = archive
@@ -143,6 +146,8 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 
 	containerpath := filepath.Join(conf.StoragePath, opts.name)
 	logfile := filepath.Join(conf.StoragePath, opts.name) + ".log"
+
+	// cask path ie /opt/cask/CONTAINER/cask
 	caskpath := filepath.Join(containerpath, "cask")
 	configpath := filepath.Join(containerpath, "config")
 	metadatapath := filepath.Join(caskpath, "meta.json")
@@ -153,6 +158,12 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		return filepath.Join(rootfspath, subpath[1:])
 	}
 
+	// runtime paths
+	runtimepath := filepath.Join(conf.StoragePath, opts.runtime)
+	runtimerootfs := filepath.Join(runtimepath, "rootfs")
+	runtimemetapath := filepath.Join(runtimepath, "cask/meta.json")
+
+	log.Debug("caskpath", caskpath)
 	log.Debug("containerpath", containerpath)
 	log.Debug("metadata path", metadatapath)
 	log.Debug("rootfs path", rootfspath)
@@ -182,22 +193,40 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 		c.C.Destroy()
 	}
 
-	topts := &util.TarOptions{
-		Verbose: opts.verbose,
-	}
-	err = util.UntarImage(archivepath, containerpath, topts)
-	if err != nil {
-		log.Errorf("UntarImage (in %s): %s\n", containerpath, err)
-		return
+	// extract the runtimes cask directory only; nothing else
+	extract_runtime := false
+	if extract_runtime {
+		topts := &util.TarOptions{
+			Verbose: opts.verbose,
+			Path:    "cask",
+		}
+		log.Infof("Extracting runtime from %s into %s", archivepath, containerpath)
+		err = util.UntarImage(archivepath, containerpath, topts)
+		if err != nil {
+			log.Errorf("UntarImage (in %s): %s\n", containerpath, err)
+			return
+		}
+	} else {
+		// copy cask dir from the runtime
+		runtimecaskpath := filepath.Join(runtimepath, "cask")
+		log.Infof("copytree %s to %s", runtimecaskpath, caskpath)
+		err = shutil.CopyTree(runtimecaskpath, caskpath, nil)
+		if err != nil {
+			log.Error("CopyTree", err)
+			return
+		}
+
 	}
 
-	// load the meta
-	err = c.LoadMetadata()
+	// load the meta from the runtime
+
+	err = c.LoadMetadataFromPath(runtimemetapath)
 	if err != nil {
-		log.Errorf("load container meta: %s: %s", opts.name, err)
+		log.Errorf("load runtime meta: %s: %s", opts.runtime, err)
 		return
 	}
 	meta := c.Meta
+	meta.Name = opts.name
 
 	if meta.Runtime == "" {
 		log.Errorf("runtime can not be empty: %s", opts.name)
@@ -205,8 +234,6 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	}
 	log.Debug("runtime", meta.Runtime)
 
-	runtimepath := filepath.Join(conf.StoragePath, meta.Runtime)
-	runtimerootfs := filepath.Join(runtimepath, "rootfs")
 	runtime, err := container.NewContainer(runtimepath)
 	if err != nil {
 		log.Errorf("getting runtime container: %s", err)
@@ -244,7 +271,10 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	build.SetConfigItem("lxc.utsname", opts.name)
 
 	// setup root file system
-	build.RootFilesystem(runtimerootfs, rootfspath)
+	// build.RootFilesystem(runtimerootfs, rootfspath)
+	rootfs := container.NewAufsFilesystem(runtimerootfs)
+	rootfs.AddLayer(rootfspath)
+	build.FS.SetRoot(rootfs)
 
 	// prepare mounts
 	build.SetConfigItem("lxc.mount", mountpath)
@@ -281,6 +311,7 @@ func cli_launch(ctx *cli.Context, conf *config.Config) {
 	log.Info("configured", conf.StoragePath, opts.name)
 
 	// add our script to the rootfs (temporary, we'll delete later)
+	log.Infof("copytree %s to %s", caskpath, filepath.Join(rootfspath, "cask"))
 	err = shutil.CopyTree(caskpath, filepath.Join(rootfspath, "cask"), nil)
 	if err != nil {
 		log.Error("CopyTree", err)
